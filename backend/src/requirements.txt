@@ -1,0 +1,3 @@
+# Runtime dependencies for the Lambdas.
+# boto3 ships in the Lambda runtime; pinned here only for local development.
+shapely==2.1.2

@@ -52,3 +52,6 @@ form.html
 
 # Local-only handoff notes, deliberately not committed
 KARTIK-HANDOFF.md
+
+# Kartik's backend export, kept locally for reference only
+backend.zip

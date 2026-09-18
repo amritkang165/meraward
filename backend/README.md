@@ -28,7 +28,34 @@ backend/
 
 _To be filled in once `sam init` lands._
 
-## SAM wiring — read this before writing `template.yaml`
+## Deploying
+
+`template.yaml` is in this directory and validates clean (`sam validate --lint`).
+It reuses the logical IDs of the original `meraward-infra` stack, so a deploy
+**updates it in place** — the buckets keep their names and `wards.geojson` stays
+where it is.
+
+```bash
+cd backend
+sam build --template template.yaml
+sam deploy --stack-name meraward-infra            --region ap-south-1 --profile meraward            --capabilities CAPABILITY_IAM --resolve-s3            --parameter-overrides MerawardEmail=<verified-ses-address>                                  AllowedOrigin=<amplify-domain>
+```
+
+`samconfig.toml` is deliberately gitignored: it would otherwise put a teammate's
+personal email address in a public repository. Create your own locally if you
+want the flags remembered.
+
+After deploying, `GET /health` reports `ward_index.loaded` — that is the check
+that `shapely` imported on the real runtime.
+
+### Runtime
+
+**python3.13.** `sam build` verified that `shapely` 2.1.2 packages as
+`cp313-cp313-manylinux_2_17_x86_64`, the correct Linux wheel for Lambda, with
+numpy's native `.so` files alongside it. 3.13 is also the interpreter the tests
+run against locally. An earlier stack deployed 3.14, which nothing was tested on.
+
+## SAM wiring — the details
 
 Handlers import shared code as `from common.x import y`, so **every function uses
 `CodeUri: backend/src`** and a dotted handler path:

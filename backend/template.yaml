@@ -1,0 +1,315 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  MERAWARD backend. Built on Kartik's meraward-infra template, with the logical
+  IDs preserved so `sam deploy` UPDATES the existing stack rather than replacing
+  it — the buckets keep their names and wards.geojson stays where it is.
+
+  What changed from that version:
+    * every function points at backend/src with a dotted handler, so `common/`
+      is importable from all of them
+    * routes corrected to the API contract in PRD §8 and the 247 tests
+    * complaints_query and status_update added (they were missing entirely)
+    * environment variable names matched to common/config.py
+    * CORS added to the photos bucket, without which the browser PUT fails
+    * ReportBatchItemFailures on the SQS source, without which one bad record
+      redelivers and redrafts the whole batch
+
+Parameters:
+  MerawardEmail:
+    Type: String
+    Description: Verified SES identity used as both sender and demo recipient.
+  AllowedOrigin:
+    Type: String
+    Default: "*"
+    Description: >
+      Origin allowed to PUT photos to S3. Set this to the Amplify domain before
+      judging; "*" is convenient during the build, not correct afterwards.
+
+Globals:
+  Function:
+    # 3.13 on purpose: it is a supported Lambda runtime, shapely publishes a
+    # cp313 manylinux wheel, and it is the interpreter the 247 tests actually
+    # run against. The stack previously deployed 3.14, which nothing was tested
+    # on.
+    Runtime: python3.13
+    # One CodeUri for every function: handlers import `from common.x import y`,
+    # so they must share a package root.
+    CodeUri: src/
+    Timeout: 20
+    MemorySize: 1024
+    Environment:
+      Variables:
+        COMPLAINTS_TABLE: !Ref ComplaintsTable
+        WARDS_TABLE: !Ref WardsTable
+        WARD_INDEX_NAME: ward-created-index
+        STATUS_INDEX_NAME: status-created-index
+        PHOTOS_BUCKET: !Ref MerawardPhotosBucket
+        DATA_BUCKET: !Ref MerawardDataBucket
+        WARDS_GEOJSON_KEY: wards.geojson
+        DRAFT_QUEUE_URL: !Ref ComplaintQueue
+        DELIVERY_MODE: DEMO_OUTBOX
+        SES_SENDER: !Ref MerawardEmail
+        SES_DEMO_RECIPIENT: !Ref MerawardEmail
+        MAX_PHOTO_BYTES: "8388608"
+        # Bedrock stays off until a real inference profile id exists. The
+        # deterministic composer runs in its place and the product is complete.
+        BEDROCK_ENABLED: "false"
+        BEDROCK_INFERENCE_PROFILE_ID: ""
+
+Resources:
+
+  # ─────────────────────────────────────────────── API
+
+  MerawardApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: $default
+      CorsConfiguration:
+        AllowOrigins: ["*"]
+        AllowHeaders: ["*"]
+        AllowMethods: ["*"]
+
+  # ─────────────────────────────────────────────── Data stores
+
+  ComplaintsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: meraward-complaints
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: complaint_id, AttributeType: S }
+        - { AttributeName: ward_id, AttributeType: S }
+        - { AttributeName: created_at, AttributeType: S }
+        - { AttributeName: status, AttributeType: S }
+      KeySchema:
+        - { AttributeName: complaint_id, KeyType: HASH }
+      GlobalSecondaryIndexes:
+        # Names are referenced by WARD_INDEX_NAME / STATUS_INDEX_NAME above.
+        # A GSI cannot be renamed in place, so do not change these.
+        - IndexName: ward-created-index
+          KeySchema:
+            - { AttributeName: ward_id, KeyType: HASH }
+            - { AttributeName: created_at, KeyType: RANGE }
+          Projection: { ProjectionType: ALL }
+        - IndexName: status-created-index
+          KeySchema:
+            - { AttributeName: status, KeyType: HASH }
+            - { AttributeName: created_at, KeyType: RANGE }
+          Projection: { ProjectionType: ALL }
+
+  WardsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: meraward-wards
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: ward_id, AttributeType: S }
+      KeySchema:
+        - { AttributeName: ward_id, KeyType: HASH }
+
+  MerawardPhotosBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 }
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      # Without this the presigned PUT fails in the browser with an opaque
+      # error. Content-Length is in the signature, so it must be allowed.
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins: [!Ref AllowedOrigin]
+            AllowedMethods: [PUT]
+            AllowedHeaders: ["content-type", "content-length"]
+            MaxAge: 3000
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-photos
+            Status: Enabled
+            ExpirationInDays: 30
+
+  MerawardDataBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 }
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # ─────────────────────────────────────────────── Queue
+
+  ComplaintDLQ:
+    Type: AWS::SQS::Queue
+
+  ComplaintQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      # At least 6× the worker timeout, so a slow draft is not redelivered
+      # while it is still being worked on.
+      VisibilityTimeout: 420
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt ComplaintDLQ.Arn
+        maxReceiveCount: 3
+
+  # ─────────────────────────────────────────────── Functions
+
+  HealthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: health.app.handler
+      Policies:
+        - S3ReadPolicy: { BucketName: !Ref MerawardDataBucket }
+      Events:
+        Health:
+          Type: HttpApi
+          Properties: { ApiId: !Ref MerawardApi, Path: /health, Method: GET }
+
+  WardLookupFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: ward_lookup.app.handler
+      Policies:
+        - S3ReadPolicy: { BucketName: !Ref MerawardDataBucket }
+        - DynamoDBReadPolicy: { TableName: !Ref WardsTable }
+      Events:
+        # GET with query params — NOT a POST body, and `wards` is plural.
+        Lookup:
+          Type: HttpApi
+          Properties: { ApiId: !Ref MerawardApi, Path: /wards/lookup, Method: GET }
+        # The path parameter must be named ward_id; the handler reads it by name.
+        ById:
+          Type: HttpApi
+          Properties: { ApiId: !Ref MerawardApi, Path: "/wards/{ward_id}", Method: GET }
+
+  PresignUploadFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: presign_upload.app.handler
+      Timeout: 10
+      Policies:
+        - S3WritePolicy: { BucketName: !Ref MerawardPhotosBucket }
+      Events:
+        Presign:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MerawardApi
+            Path: /complaints/presign
+            Method: POST
+
+  CreateComplaintFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: create_complaint.app.handler
+      Policies:
+        - S3ReadPolicy: { BucketName: !Ref MerawardDataBucket }
+        - DynamoDBCrudPolicy: { TableName: !Ref ComplaintsTable }
+        - SQSSendMessagePolicy: { QueueName: !GetAtt ComplaintQueue.QueueName }
+      Events:
+        Create:
+          Type: HttpApi
+          Properties: { ApiId: !Ref MerawardApi, Path: /complaints, Method: POST }
+
+  ComplaintsQueryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: complaints_query.app.handler
+      Policies:
+        - S3ReadPolicy: { BucketName: !Ref MerawardDataBucket }
+        # Signs GET urls for complaint photos.
+        - S3ReadPolicy: { BucketName: !Ref MerawardPhotosBucket }
+        - DynamoDBReadPolicy: { TableName: !Ref ComplaintsTable }
+        - DynamoDBReadPolicy: { TableName: !Ref WardsTable }
+      Events:
+        # Path parameter is `id` here, not `complaint_id`.
+        Detail:
+          Type: HttpApi
+          Properties: { ApiId: !Ref MerawardApi, Path: "/complaints/{id}", Method: GET }
+        List:
+          Type: HttpApi
+          Properties: { ApiId: !Ref MerawardApi, Path: /complaints, Method: GET }
+        Leaderboard:
+          Type: HttpApi
+          Properties: { ApiId: !Ref MerawardApi, Path: /leaderboard, Method: GET }
+
+  StatusUpdateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: status_update.app.handler
+      Policies:
+        - S3ReadPolicy: { BucketName: !Ref MerawardPhotosBucket }
+        - DynamoDBCrudPolicy: { TableName: !Ref ComplaintsTable }
+      Events:
+        Update:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MerawardApi
+            Path: "/complaints/{id}/status"
+            Method: POST
+
+  DraftAndSendFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: draft_and_send.app.handler
+      Timeout: 60
+      Policies:
+        - DynamoDBCrudPolicy: { TableName: !Ref ComplaintsTable }
+        - Statement:
+            - Effect: Allow
+              Action: [ses:SendEmail]
+              Resource: "*"
+            - Effect: Allow
+              Action: [cloudwatch:PutMetricData]
+              Resource: "*"
+            # Harmless while BEDROCK_ENABLED is false; ready when it is not.
+            - Effect: Allow
+              Action: [bedrock:InvokeModel, bedrock:Converse]
+              Resource: "*"
+      Events:
+        ComplaintQueueEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt ComplaintQueue.Arn
+            BatchSize: 5
+            # Required. Without it, one failing record redelivers the whole
+            # batch and every complaint in it gets redrafted.
+            FunctionResponseTypes: [ReportBatchItemFailures]
+
+  ComputeNeglectIndexFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: compute_neglect_index.app.handler
+      Timeout: 120
+      Policies:
+        - DynamoDBReadPolicy: { TableName: !Ref ComplaintsTable }
+        - DynamoDBCrudPolicy: { TableName: !Ref WardsTable }
+      Events:
+        HourlyWNI:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(1 hour)
+            Name: meraward-hourly-wni
+            Description: Recompute the Ward Neglect Index hourly
+
+Outputs:
+  ApiUrl:
+    Description: MERAWARD API endpoint
+    Value: !Sub "https://${MerawardApi}.execute-api.${AWS::Region}.amazonaws.com"
+  ComplaintsTableName:
+    Value: !Ref ComplaintsTable
+  WardsTableName:
+    Value: !Ref WardsTable
+  PhotosBucketName:
+    Value: !Ref MerawardPhotosBucket
+  DataBucketName:
+    Value: !Ref MerawardDataBucket
+  ComplaintQueueUrl:
+    Value: !Ref ComplaintQueue
