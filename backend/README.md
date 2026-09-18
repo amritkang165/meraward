@@ -71,3 +71,8 @@ local GeoJSON file instead of S3, which is also how `sam local` should be run.
 | `common/config.py` | Environment configuration |
 | `common/ids.py` | ULID complaint ids, status tokens |
 | `ward_lookup/app.py` | `GET /wards/lookup`, `GET /wards/{ward_id}` |
+| `common/validation.py` | Write-path input validation |
+| `common/aws.py` | Lazily-created, container-cached boto3 clients |
+| `presign_upload/app.py` | `POST /complaints/presign` |
+| `create_complaint/app.py` | `POST /complaints` — fast path, 202 + SQS enqueue |
+| `health/app.py` | `GET /health` |

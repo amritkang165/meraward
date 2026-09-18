@@ -12,22 +12,23 @@ from __future__ import annotations
 import logging
 from typing import Any, Final
 
+from .aws import dynamodb_resource
 from .config import load_config
 
 log = logging.getLogger(__name__)
 
-__all__ = ["councillor_block", "get_ward_record", "ward_stats"]
-
-_resource = None
+__all__ = [
+    "councillor_block",
+    "get_complaint",
+    "get_ward_record",
+    "put_complaint",
+    "update_complaint_draft",
+    "ward_stats",
+]
 
 
 def _table(name: str):
-    global _resource
-    if _resource is None:
-        import boto3  # lazy: pure-logic tests must not need the AWS SDK
-
-        _resource = boto3.resource("dynamodb", region_name=load_config().region)
-    return _resource.Table(name)
+    return dynamodb_resource().Table(name)
 
 
 def get_ward_record(ward_id: str) -> dict[str, Any] | None:
@@ -61,6 +62,29 @@ def ward_stats(record: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
+def put_complaint(item: dict[str, Any]) -> None:
+    """Write a new complaint.
+
+    Conditional on the id not already existing: a retried invocation must not
+    silently overwrite a complaint that already has a draft on it.
+    """
+    _table(load_config().complaints_table).put_item(
+        Item=item, ConditionExpression="attribute_not_exists(complaint_id)"
+    )
+
+
+def get_complaint(complaint_id: str) -> dict[str, Any] | None:
+    key = (complaint_id or "").strip()
+    if not key:
+        return None
+    item = (
+        _table(load_config().complaints_table)
+        .get_item(Key={"complaint_id": key})
+        .get("Item")
+    )
+    return item or None
+
+
 #: Councillor fields we are willing to publish. Contact details are deliberately
 #: absent: we do not email officials, so their addresses are not on the critical
 #: path and we are not collecting them.
@@ -92,3 +116,26 @@ def councillor_block(record: dict[str, Any] | None) -> dict[str, Any] | None:
     party = (record.get("party") or "").strip()
     block["party"] = party or None
     return block
+
+
+def update_complaint_draft(complaint_id: str, draft: dict[str, Any]) -> None:
+    """Attach a composed draft to an existing complaint.
+
+    Conditional on the complaint existing, so a draft can never resurrect a row
+    that was deleted, and so a late worker retry cannot create a headless one.
+    """
+    _table(load_config().complaints_table).update_item(
+        Key={"complaint_id": complaint_id},
+        UpdateExpression=(
+            "SET subject = :s, body_en = :en, body_hi = :hi, "
+            "draft_source = :src, draft_status = :status"
+        ),
+        ExpressionAttributeValues={
+            ":s": draft["subject"],
+            ":en": draft["body_en"],
+            ":hi": draft["body_hi"],
+            ":src": draft.get("source", "template"),
+            ":status": "DRAFTED",
+        },
+        ConditionExpression="attribute_exists(complaint_id)",
+    )
