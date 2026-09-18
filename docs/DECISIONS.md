@@ -34,3 +34,10 @@ Times are IST.
 - **2026-09-19 · Ethics** — The Neglect Index attaches to a **ward**, never to a named individual.
   Email delivery defaults to a demo Outbox plus a verified demo inbox; `SES_LIVE` exists as a
   config flag and is off. We do not put unsolicited AI-drafted mail in a public servant's inbox.
+
+- **2026-09-19 · Index** — The PRD's §8 example response was internally inconsistent: it showed
+  `neglect_index: 74` against `index_basis` values (open 23, resolved 41, median open age 61,
+  median resolution 34) that compute to **53 / MODERATE** under §13's own formula. Corrected the
+  example to match the formula, since the formula is the specification and the implementation now
+  has a test asserting exactly those weights. Worth knowing: a judge reading the writeup and the
+  API response side by side would have found this in under a minute.
