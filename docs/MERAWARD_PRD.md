@@ -1,4 +1,17 @@
 # MERAWARD — Product Requirements Document
+
+> [!IMPORTANT]
+> **This is the planning document, written before the build. It is kept as the record
+> of intent, not as a description of the current system.**
+>
+> For what actually exists, read [`../README.md`](../README.md); for why it ended up
+> that way, read [`DECISIONS.md`](DECISIONS.md). Where this document and the code
+> disagree, **the code and its tests are correct.**
+>
+> Version 1 of this PRD was deleted in the documentation audit: it described an
+> architecture we deliberately did not build (OpenSearch, Cognito, Transcribe) and
+> misled anyone reading `docs/`. It remains in git history at commit `b7578b2`.
+
 ### Know your ward. Route your complaint. See who's ignoring you.
 **Event:** First Commit · Bharat Builds Tour (Event 01 of 06) — WeMakeDevs × AWS
 **Track:** SHIP IT (deployed on AWS, public URL)
@@ -35,15 +48,20 @@ v2 cuts the service count roughly in half and hardens the parts judges actually 
 
 ---
 
-## 1. WHERE WE ACTUALLY ARE
+## 1. WHERE WE WERE WHEN THIS WAS WRITTEN
 
-- Repo: **does not exist.** Creating it is task #1 (§4 — DQ risk).
-- AWS: **nothing provisioned.** Bedrock model access **not granted** — request it in the first 15 minutes (§11).
-- SES: assume **sandbox**. Design for it. Treat production access as a bonus that probably will not arrive in time.
+> *Historical. Retained because the plan below only makes sense against it.*
+
+- Repo: **did not exist.** Creating it was task #1 (§4 — DQ risk).
+- AWS: **nothing provisioned.** Bedrock model access **not granted**.
+- SES: assume **sandbox**. Design for it.
 - Code: **zero lines.**
 - Time: **~30 hours**, of which ~7 must be sleep and ~4 must be submission work.
 
-**Budget to ~19 hours of real build time across 3 people. Not 44.**
+**Where things actually stand now is in [`../README.md`](../README.md).** Briefly: the
+backend and frontend are complete with 245 passing tests, 289 real ward polygons are
+committed, and deployment is the remaining blocker. Bedrock turned out to be optional —
+the organisers confirmed on 2026-09-18 that only deploying on AWS is required.
 
 ---
 
@@ -531,4 +549,4 @@ The rules require AWS to be **demonstrated on screen**. Budget real console foot
 
 ---
 
-*End of PRD v2.0. v1 archived as `MERAWARD_PRD_v1_ARCHIVE.md`. Further changes go in `/docs/DECISIONS.md` as timestamped one-liners.*
+*End of PRD v2.0. v1 lives in git history at `b7578b2`. Further changes go in [`DECISIONS.md`](DECISIONS.md) as timestamped one-liners.*

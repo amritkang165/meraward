@@ -45,8 +45,10 @@ redistribution of the derived `data/wards.geojson` carries the same licence.
 
 | Field | Value |
 |---|---|
-| Provider | _TBD — must permit application use_ |
-| Licence / attribution string | _TBD_ |
+| Provider | [CARTO Positron](https://basemaps.cartocdn.com/gl/positron-gl-style/style.json) |
+| Why | Permits application use with attribution, and needs no API key |
+| Attribution (rendered in-map) | `© CARTO · © OpenStreetMap contributors` |
+| Underlying data | © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, ODbL |
 
 > We deliberately do **not** use `tile.openstreetmap.org`: its usage policy prohibits
 > application/production use, and this is a public URL judges will click.

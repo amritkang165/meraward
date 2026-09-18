@@ -118,4 +118,8 @@ precisely the same thing. The audit found a bug that no test had.
 
 ## Kartik Dixit
 
-_Pending._
+> Kartik — one substantive entry is a scored submission criterion, so this is worth
+> twenty minutes before we submit. The AWS account recovery decision, the SAM wiring,
+> and whatever bit you into a wall are all good material.
+
+_Awaiting Kartik._
