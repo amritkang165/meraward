@@ -42,3 +42,7 @@ data/raw/
 *.shp
 *.dbf
 *.shx
+
+# Scratch downloads
+form.html
+*.tmp.html
