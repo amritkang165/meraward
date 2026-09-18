@@ -21,7 +21,10 @@ __all__ = [
     "councillor_block",
     "get_complaint",
     "get_ward_record",
+    "photo_url",
     "put_complaint",
+    "query_complaints",
+    "scan_wards",
     "update_complaint_draft",
     "ward_stats",
 ]
@@ -139,3 +142,72 @@ def update_complaint_draft(complaint_id: str, draft: dict[str, Any]) -> None:
         },
         ConditionExpression="attribute_exists(complaint_id)",
     )
+
+
+def _page(fn, **kwargs) -> list[dict[str, Any]]:
+    """Run a query/scan to completion.
+
+    Paging matters even at demo scale: DynamoDB caps a page at 1 MB, and a
+    dashboard that silently showed the first page would under-report the map.
+    """
+    items: list[dict[str, Any]] = []
+    while True:
+        result = fn(**kwargs)
+        items.extend(result.get("Items") or [])
+        token = result.get("LastEvaluatedKey")
+        if not token:
+            return items
+        kwargs["ExclusiveStartKey"] = token
+
+
+def query_complaints(
+    *, status: str | None = None, ward_id: str | None = None
+) -> list[dict[str, Any]]:
+    """Fetch complaints, using whichever index the filter allows.
+
+    GSI2 is ``status + created_at`` and GSI1 is ``ward_id + created_at``, so a
+    filtered dashboard query hits an index. An unfiltered map view falls back to
+    a scan, which is the right call for a few hundred rows: the alternative is a
+    search cluster we deliberately did not buy.
+    """
+    from boto3.dynamodb.conditions import Key
+
+    table = _table(load_config().complaints_table)
+
+    if status:
+        return _page(
+            table.query, IndexName="GSI2", KeyConditionExpression=Key("status").eq(status)
+        )
+    if ward_id:
+        return _page(
+            table.query, IndexName="GSI1", KeyConditionExpression=Key("ward_id").eq(ward_id)
+        )
+    return _page(table.scan)
+
+
+def scan_wards() -> list[dict[str, Any]]:
+    """Every ward row. ~250 items, so this is a scan and that is fine."""
+    return _page(_table(load_config().wards_table).scan)
+
+
+def photo_url(photo_key: str | None, *, expires_in: int = 3600) -> str | None:
+    """Presigned GET for a complaint photo.
+
+    The bucket blocks public ACLs, so photos are served through short-lived
+    signed URLs rather than being made world-readable.
+    """
+    key = (photo_key or "").strip()
+    cfg = load_config()
+    if not key or not cfg.photos_bucket:
+        return None
+    try:
+        from .aws import s3_client
+
+        return s3_client().generate_presigned_url(
+            "get_object",
+            Params={"Bucket": cfg.photos_bucket, "Key": key},
+            ExpiresIn=expires_in,
+        )
+    except Exception:
+        log.exception("could not sign photo url for %s", key)
+        return None

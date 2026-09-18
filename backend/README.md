@@ -76,3 +76,5 @@ local GeoJSON file instead of S3, which is also how `sam local` should be run.
 | `presign_upload/app.py` | `POST /complaints/presign` |
 | `create_complaint/app.py` | `POST /complaints` — fast path, 202 + SQS enqueue |
 | `health/app.py` | `GET /health` |
+| `common/views.py` | Public projections — the allow-list that decides what is publishable |
+| `complaints_query/app.py` | `GET /complaints/{id}`, `GET /complaints`, `GET /leaderboard` |
