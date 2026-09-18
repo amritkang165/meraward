@@ -37,7 +37,11 @@ Globals:
     # so they must share a package root.
     CodeUri: src/
     Timeout: 20
-    MemorySize: 1024
+    # 1536 rather than 1024: a container invoke reported memory used at the
+    # 1024 ceiling once numpy and shapely are loaded alongside 289 polygons.
+    # Lambda also scales CPU with memory, so this shortens the ~1s cold-start
+    # index build - which is the part a judge actually waits on.
+    MemorySize: 1536
     Environment:
       Variables:
         COMPLAINTS_TABLE: !Ref ComplaintsTable
