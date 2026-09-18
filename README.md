@@ -130,7 +130,7 @@ commit dates.
 | | Role |
 |---|---|
 | **Amrit Kang** ([@amritkang165](https://github.com/amritkang165)) | Team lead · frontend · ward data |
-| **Kartik Dixit** | AWS infrastructure · SAM · delivery pipeline |
+| **Kartik Dixit** ([@KartikDixit2468](https://github.com/KartikDixit2468)) | AWS infrastructure · SAM · delivery pipeline |
 | **Muneer Alam** ([@Muneer320](https://github.com/Muneer320)) | Backend Lambdas · geospatial · index + seed data |
 
 ## Licence
