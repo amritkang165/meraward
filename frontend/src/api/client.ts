@@ -57,11 +57,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   const text = await response.text()
   let payload: unknown = null
+  let parsed = false
   if (text) {
     try {
       payload = JSON.parse(text)
+      parsed = true
     } catch {
-      payload = null
+      parsed = false
     }
   }
 
@@ -70,6 +72,19 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(
       envelope?.code ?? 'unexpected_error',
       envelope?.message ?? 'Something went wrong.',
+      response.status,
+    )
+  }
+
+  // A 2xx whose body is not JSON is a failure, not an empty success. This is
+  // not hypothetical: with the API base URL unset, these calls hit the SPA
+  // fallback and get index.html back with a 200. Returning null there made
+  // every screen crash on its first property access instead of showing an
+  // error. A proxy error page or a truncated body does exactly the same thing.
+  if (!parsed) {
+    throw new ApiError(
+      'invalid_response',
+      'The server sent something unreadable. The API may be misconfigured.',
       response.status,
     )
   }

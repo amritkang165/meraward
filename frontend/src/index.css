@@ -10,7 +10,9 @@
 @theme {
   --color-ink: #0c1618;
   --color-ink-2: #3b4b4e;
-  --color-ink-3: #69797c;
+  /* Darkened from #69797c: that failed WCAG AA (4.18:1) against the
+     page ground. This clears 4.5:1 on ground, surface and surface-2. */
+  --color-ink-3: #5a6b6e;
 
   --color-ground: #f4f6f6;
   --color-surface: #ffffff;
@@ -22,9 +24,11 @@
   --color-brand-soft: #d6ebe8;
 
   /* Index bands. Higher is worse, so the ramp runs green → amber → red. */
-  --color-band-low: #15803d;
+  /* Band text sits on its own soft background; these are darkened from
+     #15803d / #b45309, which failed AA at 4.21 and 4.29 on those grounds. */
+  --color-band-low: #146c34;
   --color-band-low-soft: #dcf0e3;
-  --color-band-moderate: #b45309;
+  --color-band-moderate: #9a4708;
   --color-band-moderate-soft: #fbebd5;
   --color-band-high: #b91c1c;
   --color-band-high-soft: #f8dede;
@@ -68,6 +72,12 @@ a[role='button'] {
 /* MapLibre ships its own stylesheet; these are the bits we override. */
 .maplibregl-ctrl-attrib {
   font-size: 10px;
+}
+
+/* MapLibre renders its attribution links with colour as the only affordance,
+   which fails WCAG 1.4.1. Underlining them is the whole fix. */
+.maplibregl-ctrl-attrib a {
+  text-decoration: underline;
 }
 
 .skeleton {

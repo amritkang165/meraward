@@ -1,0 +1,6 @@
+# MERAWARD — a public civic accountability tool. Indexing is welcome.
+User-agent: *
+Allow: /
+
+# Magic-link status pages are per-complaint secrets, not content.
+Disallow: /u/

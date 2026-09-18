@@ -58,6 +58,13 @@ export function MapView({
       .addTo(instance)
     marker.current = pinMarker
 
+    // MapLibre labels its marker div with aria-label but gives it no role,
+    // which is a prohibited ARIA usage. Naming the role makes the label valid
+    // and tells a screen reader what the thing actually is.
+    const markerElement = pinMarker.getElement()
+    markerElement.setAttribute('role', 'img')
+    markerElement.setAttribute('aria-label', 'Selected location. Drag to move.')
+
     pinMarker.on('dragend', () => {
       const { lat, lng } = pinMarker.getLngLat()
       onMove.current({ lat, lng })

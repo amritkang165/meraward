@@ -1,8 +1,23 @@
+import { lazy, Suspense } from 'react'
 import { NavLink, Route, Routes } from 'react-router-dom'
 import Home from './routes/Home'
-import Ward from './routes/Ward'
-import About from './routes/About'
-import { Placeholder } from './routes/Placeholder'
+import { LoadingCard } from './components/states'
+
+/**
+ * Every route below the home page is split out.
+ *
+ * Home is the entry point and is bundled with the shell so the first paint
+ * needs one request. Everything else — and in particular anything that pulls in
+ * MapLibre, which is the single heaviest dependency we ship — loads only when
+ * someone navigates to it.
+ */
+const Ward = lazy(() => import('./routes/Ward'))
+const Report = lazy(() => import('./routes/Report'))
+const Dashboard = lazy(() => import('./routes/Dashboard'))
+const ComplaintDetail = lazy(() => import('./routes/ComplaintDetail'))
+const StatusUpdate = lazy(() => import('./routes/StatusUpdate'))
+const About = lazy(() => import('./routes/About'))
+const NotFound = lazy(() => import('./routes/NotFound'))
 
 const NAV = [
   { to: '/', label: 'Home', end: true },
@@ -28,7 +43,9 @@ export default function App() {
                 end={item.end}
                 className={({ isActive }) =>
                   `rounded-lg px-2.5 py-1.5 transition-colors ${
-                    isActive ? 'bg-brand-soft font-semibold text-brand-dark' : 'text-ink-2 hover:bg-surface-2'
+                    isActive
+                      ? 'bg-brand-soft font-semibold text-brand-dark'
+                      : 'text-ink-2 hover:bg-surface-2'
                   }`
                 }
               >
@@ -40,65 +57,18 @@ export default function App() {
       </header>
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-5">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/ward" element={<Ward />} />
-          <Route path="/about" element={<About />} />
-          <Route
-            path="/report"
-            element={
-              <Placeholder
-                title="Report an issue"
-                blurb="Photo, one tap, and the complaint drafts itself in Hindi and English."
-                next={[
-                  'Step 1 — pick the issue type',
-                  'Step 2 — take or choose a photo, uploaded straight to S3',
-                  'Step 3 — review the bilingual draft and submit',
-                ]}
-              />
-            }
-          />
-          <Route
-            path="/dashboard"
-            element={
-              <Placeholder
-                title="Accountability dashboard"
-                blurb="Every report across Delhi, and which wards are being ignored."
-                next={['Complaint heatmap', 'Ward Neglect Index leaderboard', 'Issue and status filters']}
-              />
-            }
-          />
-          <Route
-            path="/c/:id"
-            element={
-              <Placeholder
-                title="Complaint"
-                blurb="The shareable record of a single report."
-                next={['Photo and location', 'The drafted letter in Hindi and English', 'Status timeline']}
-              />
-            }
-          />
-          <Route
-            path="/u/:token"
-            element={
-              <Placeholder
-                title="Update this complaint"
-                blurb="Acknowledge it, mark it resolved, or say it's still broken."
-                next={['Acknowledge', 'Resolve', 'Still broken']}
-              />
-            }
-          />
-          <Route
-            path="*"
-            element={
-              <Placeholder
-                title="Page not found"
-                blurb="That link doesn't lead anywhere in MERAWARD."
-                next={[]}
-              />
-            }
-          />
-        </Routes>
+        <Suspense fallback={<LoadingCard />}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/ward" element={<Ward />} />
+            <Route path="/report" element={<Report />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/c/:id" element={<ComplaintDetail />} />
+            <Route path="/u/:token" element={<StatusUpdate />} />
+            <Route path="/about" element={<About />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
       </main>
 
       <footer className="border-t border-line bg-surface">
