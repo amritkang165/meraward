@@ -23,6 +23,7 @@ __all__ = [
     "get_ward_record",
     "photo_url",
     "put_complaint",
+    "record_delivery",
     "query_complaints",
     "scan_wards",
     "update_complaint_draft",
@@ -77,13 +78,20 @@ def put_complaint(item: dict[str, Any]) -> None:
     )
 
 
-def get_complaint(complaint_id: str) -> dict[str, Any] | None:
+def get_complaint(complaint_id: str, *, consistent: bool = False) -> dict[str, Any] | None:
+    """Fetch a complaint.
+
+    ``consistent`` matters for the SQS worker: DynamoDB reads are eventually
+    consistent by default, and the worker can pick up a message within
+    milliseconds of the row being written. Without a strongly consistent read it
+    would intermittently see nothing and treat a real complaint as missing.
+    """
     key = (complaint_id or "").strip()
     if not key:
         return None
     item = (
         _table(load_config().complaints_table)
-        .get_item(Key={"complaint_id": key})
+        .get_item(Key={"complaint_id": key}, ConsistentRead=consistent)
         .get("Item")
     )
     return item or None
@@ -252,4 +260,40 @@ def update_complaint_status(
         ExpressionAttributeValues=values,
         ConditionExpression="attribute_exists(complaint_id) AND #s = :expected",
         ReturnValues="ALL_NEW",
+    )
+
+
+def record_delivery(
+    complaint_id: str,
+    *,
+    draft_status: str,
+    delivery_mode: str,
+    recipient: str,
+    message_id: str | None = None,
+    note: str | None = None,
+) -> None:
+    """Record what happened when we tried to deliver a drafted complaint."""
+    names = {"#ds": "draft_status", "#dm": "delivery_mode", "#r": "delivery_recipient"}
+    values: dict[str, Any] = {
+        ":ds": draft_status,
+        ":dm": delivery_mode,
+        ":r": recipient,
+    }
+    sets = ["#ds = :ds", "#dm = :dm", "#r = :r"]
+
+    if message_id:
+        names["#mid"] = "ses_message_id"
+        values[":mid"] = message_id
+        sets.append("#mid = :mid")
+    if note:
+        names["#n"] = "delivery_note"
+        values[":n"] = note
+        sets.append("#n = :n")
+
+    _table(load_config().complaints_table).update_item(
+        Key={"complaint_id": complaint_id},
+        UpdateExpression="SET " + ", ".join(sets),
+        ExpressionAttributeNames=names,
+        ExpressionAttributeValues=values,
+        ConditionExpression="attribute_exists(complaint_id)",
     )

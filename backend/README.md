@@ -79,3 +79,26 @@ local GeoJSON file instead of S3, which is also how `sam local` should be run.
 | `common/views.py` | Public projections — the allow-list that decides what is publishable |
 | `complaints_query/app.py` | `GET /complaints/{id}`, `GET /complaints`, `GET /leaderboard` |
 | `status_update/app.py` | `POST /complaints/{id}/status` — magic-link lifecycle |
+| `common/bedrock.py` | Bedrock Converse adapter — optional, fails into the composer |
+| `common/delivery.py` | SES delivery per mode; `SES_LIVE` refused at runtime |
+| `draft_and_send/app.py` | SQS worker — draft, deliver, record, measure |
+
+
+## `draft_and_send` — event source configuration
+
+The worker returns partial batch failures, so only genuinely failed records are
+redelivered. That requires the event source mapping to opt in:
+
+```yaml
+Events:
+  DraftQueue:
+    Type: SQS
+    Properties:
+      Queue: !GetAtt DraftQueue.Arn
+      BatchSize: 5
+      FunctionResponseTypes:
+        - ReportBatchItemFailures   # required, or the whole batch retries
+```
+
+Without `ReportBatchItemFailures`, one bad record redelivers the entire batch and
+every complaint in it gets redrafted.
