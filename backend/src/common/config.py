@@ -53,6 +53,8 @@ class Config:
     region: str
     complaints_table: str
     wards_table: str
+    ward_index_name: str
+    status_index_name: str
     photos_bucket: str
     data_bucket: str
     wards_geojson_key: str
@@ -85,6 +87,11 @@ def load_config() -> Config:
         region=_env("AWS_REGION", "ap-south-1"),
         complaints_table=_env("COMPLAINTS_TABLE", "MeraWardComplaints"),
         wards_table=_env("WARDS_TABLE", "MeraWardWards"),
+        # GSI names are deployment configuration, not constants. A GSI cannot be
+        # renamed in place - changing one means recreating the table - so the
+        # code bends to the infrastructure here rather than the other way round.
+        ward_index_name=_env("WARD_INDEX_NAME", "ward-created-index"),
+        status_index_name=_env("STATUS_INDEX_NAME", "status-created-index"),
         photos_bucket=_env("PHOTOS_BUCKET"),
         data_bucket=_env("DATA_BUCKET"),
         wards_geojson_key=_env("WARDS_GEOJSON_KEY", "wards.geojson"),

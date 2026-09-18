@@ -340,3 +340,54 @@ def test_datastore_failure_is_a_500_not_a_stack_trace(stubbed, monkeypatch):
     res = app.handler({"rawPath": "/complaints"})
     assert res["statusCode"] == 500
     assert "ZeroDivision" not in res["body"]
+
+
+# ==========================================================================
+# GSI names are deployment configuration
+# ==========================================================================
+
+
+def test_index_names_come_from_configuration(monkeypatch):
+    """A GSI cannot be renamed in place, so the code must bend to the deployment.
+
+    The live stack deploys `ward-created-index` and `status-created-index`; an
+    earlier version of this code hardcoded `GSI1`/`GSI2` and would have failed
+    at runtime against it.
+    """
+    from common.config import load_config
+
+    monkeypatch.setenv("WARD_INDEX_NAME", "ward-created-index")
+    monkeypatch.setenv("STATUS_INDEX_NAME", "status-created-index")
+    load_config.cache_clear()
+
+    cfg = load_config()
+    assert cfg.ward_index_name == "ward-created-index"
+    assert cfg.status_index_name == "status-created-index"
+
+
+def test_queries_use_the_configured_index_names(monkeypatch):
+    from common import store
+    from common.config import load_config
+
+    monkeypatch.setenv("WARD_INDEX_NAME", "custom-ward-idx")
+    monkeypatch.setenv("STATUS_INDEX_NAME", "custom-status-idx")
+    load_config.cache_clear()
+
+    used = []
+
+    class _Table:
+        def query(self, **kw):
+            used.append(kw.get("IndexName"))
+            return {"Items": []}
+
+        def scan(self, **kw):
+            used.append(None)
+            return {"Items": []}
+
+    monkeypatch.setattr(store, "_table", lambda name: _Table())
+
+    store.query_complaints(status="OPEN")
+    store.query_complaints(ward_id="DEL-0001")
+    store.query_complaints()
+
+    assert used == ["custom-status-idx", "custom-ward-idx", None]

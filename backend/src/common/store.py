@@ -174,22 +174,28 @@ def query_complaints(
 ) -> list[dict[str, Any]]:
     """Fetch complaints, using whichever index the filter allows.
 
-    GSI2 is ``status + created_at`` and GSI1 is ``ward_id + created_at``, so a
-    filtered dashboard query hits an index. An unfiltered map view falls back to
+    The status index is ``status + created_at`` and the ward index is
+    ``ward_id + created_at``, so a filtered dashboard query hits an index. Their
+    names come from configuration because they differ per deployment. An unfiltered map view falls back to
     a scan, which is the right call for a few hundred rows: the alternative is a
     search cluster we deliberately did not buy.
     """
     from boto3.dynamodb.conditions import Key
 
-    table = _table(load_config().complaints_table)
+    cfg = load_config()
+    table = _table(cfg.complaints_table)
 
     if status:
         return _page(
-            table.query, IndexName="GSI2", KeyConditionExpression=Key("status").eq(status)
+            table.query,
+            IndexName=cfg.status_index_name,
+            KeyConditionExpression=Key("status").eq(status),
         )
     if ward_id:
         return _page(
-            table.query, IndexName="GSI1", KeyConditionExpression=Key("ward_id").eq(ward_id)
+            table.query,
+            IndexName=cfg.ward_index_name,
+            KeyConditionExpression=Key("ward_id").eq(ward_id),
         )
     return _page(table.scan)
 
