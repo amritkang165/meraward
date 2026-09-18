@@ -46,3 +46,6 @@ data/raw/
 # Scratch downloads
 form.html
 *.tmp.html
+
+# TypeScript incremental build cache
+*.tsbuildinfo

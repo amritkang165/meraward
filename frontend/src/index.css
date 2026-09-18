@@ -1,0 +1,91 @@
+@import 'tailwindcss';
+
+/**
+ * Design tokens.
+ *
+ * Teal-ink against cool, slightly teal-biased neutrals. Semantic colours for the
+ * index bands are kept separate from the brand accent, because "this ward is in
+ * a bad state" must not read as "this is a brand surface".
+ */
+@theme {
+  --color-ink: #0c1618;
+  --color-ink-2: #3b4b4e;
+  --color-ink-3: #69797c;
+
+  --color-ground: #f4f6f6;
+  --color-surface: #ffffff;
+  --color-surface-2: #eef2f2;
+  --color-line: #dbe3e3;
+
+  --color-brand: #0e6e68;
+  --color-brand-dark: #0a4f4a;
+  --color-brand-soft: #d6ebe8;
+
+  /* Index bands. Higher is worse, so the ramp runs green → amber → red. */
+  --color-band-low: #15803d;
+  --color-band-low-soft: #dcf0e3;
+  --color-band-moderate: #b45309;
+  --color-band-moderate-soft: #fbebd5;
+  --color-band-high: #b91c1c;
+  --color-band-high-soft: #f8dede;
+
+  --font-sans: 'Inter var', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Touch targets stay at least 44px; this is a phone-first product. */
+button,
+a[role='button'] {
+  min-height: 44px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* MapLibre ships its own stylesheet; these are the bits we override. */
+.maplibregl-ctrl-attrib {
+  font-size: 10px;
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-2) 25%,
+    var(--color-line) 37%,
+    var(--color-surface-2) 63%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
