@@ -26,6 +26,7 @@ __all__ = [
     "query_complaints",
     "scan_wards",
     "update_complaint_draft",
+    "update_complaint_status",
     "ward_stats",
 ]
 
@@ -211,3 +212,44 @@ def photo_url(photo_key: str | None, *, expires_in: int = 3600) -> str | None:
     except Exception:
         log.exception("could not sign photo url for %s", key)
         return None
+
+
+def update_complaint_status(
+    complaint_id: str,
+    *,
+    new_status: str,
+    expected_status: str,
+    timestamps: dict[str, Any] | None = None,
+    clear: tuple[str, ...] = (),
+) -> dict[str, Any]:
+    """Move a complaint to a new status, conditional on its current one.
+
+    The condition is what makes two people clicking the same magic link at the
+    same time safe: the second write fails rather than overwriting the first.
+    Raises ``ConditionalCheckFailedException`` when the row has moved on.
+    """
+    sets = ["#s = :new"]
+    names: dict[str, str] = {"#s": "status"}
+    values: dict[str, Any] = {":new": new_status, ":expected": expected_status}
+
+    for i, (field, value) in enumerate((timestamps or {}).items()):
+        sets.append(f"#t{i} = :t{i}")
+        names[f"#t{i}"] = field
+        values[f":t{i}"] = value
+
+    expression = "SET " + ", ".join(sets)
+    if clear:
+        removes = []
+        for i, field in enumerate(clear):
+            removes.append(f"#r{i}")
+            names[f"#r{i}"] = field
+        expression += " REMOVE " + ", ".join(removes)
+
+    return _table(load_config().complaints_table).update_item(
+        Key={"complaint_id": complaint_id},
+        UpdateExpression=expression,
+        ExpressionAttributeNames=names,
+        ExpressionAttributeValues=values,
+        ConditionExpression="attribute_exists(complaint_id) AND #s = :expected",
+        ReturnValues="ALL_NEW",
+    )

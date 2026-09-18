@@ -78,3 +78,4 @@ local GeoJSON file instead of S3, which is also how `sam local` should be run.
 | `health/app.py` | `GET /health` |
 | `common/views.py` | Public projections — the allow-list that decides what is publishable |
 | `complaints_query/app.py` | `GET /complaints/{id}`, `GET /complaints`, `GET /leaderboard` |
+| `status_update/app.py` | `POST /complaints/{id}/status` — magic-link lifecycle |

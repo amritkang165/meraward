@@ -54,6 +54,7 @@ PUBLIC_COMPLAINT_FIELDS: Final[tuple[str, ...]] = (
     "delivery_mode",
     "acknowledged_at",
     "resolved_at",
+    "reopened_at",
 )
 
 #: Secrets. These strings must not appear *anywhere* in a response, not as a
@@ -74,6 +75,7 @@ _STATUS_LABELS: Final[dict[str, str]] = {
     "OPEN": "Reported",
     "ACKNOWLEDGED": "Acknowledged by ward office",
     "RESOLVED": "Marked resolved",
+    "REOPENED": "Reported still broken",
 }
 
 
@@ -106,6 +108,15 @@ def status_timeline(record: dict[str, Any]) -> list[dict[str, Any]]:
             {"status": "RESOLVED", "label": _STATUS_LABELS["RESOLVED"], "at": resolved}
         )
 
+    # A reopen is part of the story, not an erasure of it: "someone marked this
+    # fixed and it was not" is exactly the accountability signal we are after.
+    reopened = record.get("reopened_at")
+    if reopened:
+        steps.append(
+            {"status": "OPEN", "label": _STATUS_LABELS["REOPENED"], "at": reopened}
+        )
+
+    steps.sort(key=lambda s: s["at"] or "")
     return steps
 
 
