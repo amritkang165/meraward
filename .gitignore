@@ -1,0 +1,44 @@
+# ---------------------------------------------------------------
+# NEVER COMMIT: local context dumps containing personal email data
+# ---------------------------------------------------------------
+*mails-since-*.md
+*-mails-*.md
+secrets/
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# AWS SAM
+.aws-sam/
+samconfig.toml
+packaged.yaml
+
+# Node / Vite
+node_modules/
+dist/
+dist-ssr/
+*.local
+.vite/
+
+# Editors / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Data artifacts (large / regenerable)
+data/raw/
+*.zip
+*.shp
+*.dbf
+*.shx
