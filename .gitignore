@@ -49,3 +49,6 @@ form.html
 
 # TypeScript incremental build cache
 *.tsbuildinfo
+
+# Local-only handoff notes, deliberately not committed
+KARTIK-HANDOFF.md
