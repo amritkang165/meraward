@@ -57,7 +57,62 @@ data, and the tests are what stop that constraint quietly eroding at 4am.
 
 ## Amrit Kang
 
-_Pending._
+> Drafted from the work done in this lane — Amrit, rewrite these in your own voice
+> before submission. The reasoning is real; the phrasing should be yours.
+
+### 2026-09-19 — The data you need often does not exist, and that is the finding
+
+I budgeted ninety minutes to find Delhi's ward boundaries and expected to spend it
+on formats and projections. I spent it discovering that the data is not there.
+
+The ArcGIS Hub item for "Delhi Ward Boundary 2022" returns *item does not exist or
+is inaccessible* from both of its export endpoints. OpenCity's API has Delhi ward
+data, but only Census 2011 tables — no geometry. OpenStreetMap has no consistent
+`admin_level` relations for Delhi's municipal wards. What finally worked was
+DataMeet, a community civic-data project, under a CC BY-SA licence.
+
+And that dataset is the **pre-2022** delimitation: 272 MCD wards, not the 250 the
+city actually has now.
+
+The instinct was to keep hunting or to quietly ship it and hope nobody counted. What
+I think is actually right is to ship it and say exactly what it is, because the gap
+is the story: the current ward boundaries of a city of twenty million are not
+available as open data. That is the same accountability failure the product is
+about, showing up in our own build log.
+
+The engineering lesson underneath it: verify data, do not trust it. I ran eleven
+known Delhi coordinates through the real lookup — Connaught Place and India Gate
+landed in NDMC, Karol Bagh resolved to the ward actually named Karol Bagh, and a
+Mumbai control correctly fell outside coverage. That took ten minutes and is the
+only reason I believe the file.
+
+### 2026-09-19 — Terms of service are an engineering constraint
+
+I was about to point MapLibre at `tile.openstreetmap.org` because it needs no API
+key. Its usage policy prohibits exactly that — application use — and we were about
+to put a public URL in front of judges. Switched to CARTO Positron, which permits
+application use with attribution, and rendered the attribution in-map.
+
+"It works in development" and "we are allowed to do this" are different questions,
+and only the second one survives being deployed.
+
+### 2026-09-19 — Measuring beat guessing, twice
+
+Two things I would have shipped broken if I had trusted my eyes.
+
+The first: I picked a grey for secondary text that looked fine. Computing the
+contrast ratio showed 4.18:1 against the page background, below the 4.5:1 AA
+threshold. Two of the index band colours failed too, at 4.21 and 4.29 — and
+**Lighthouse could not see those**, because the band chips do not appear on the page
+I audited. An automated check tells you about the page it looked at, not about your
+design system.
+
+The second: Lighthouse reported a console error I assumed was a headless-browser
+artifact. It was a real crash. With the API base URL unset, requests were hitting
+the single-page fallback and getting `index.html` back with a **200**; the client
+treated an unparseable success body as an empty success and returned null, so every
+screen died on its first property access. A proxy error page in production does
+precisely the same thing. The audit found a bug that no test had.
 
 ---
 

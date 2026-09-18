@@ -3,9 +3,6 @@
 React 18 + Vite + TypeScript + Tailwind + MapLibre GL JS, deployed on AWS Amplify Hosting.
 Mobile-first PWA. **Owner: Amrit.**
 
-> There is a dedicated ₹1,00,000 Best UI prize. UI quality is a scored deliverable here,
-> not slack to cut.
-
 ## Routes
 
 | Route | Content |

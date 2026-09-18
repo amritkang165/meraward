@@ -5,11 +5,12 @@
  * use your location), get the ward and its Neglect Index.
  */
 import { useCallback, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ApiError, api, currentPosition } from '../api/client'
 import { DELHI_CENTRE, MapView } from '../components/MapView'
 import { NeglectGauge } from '../components/NeglectGauge'
+import { useDebounced } from '../lib/useDebounced'
 import { DemoNotice, ErrorState, LoadingCard } from '../components/states'
 
 type Pin = { lat: number; lng: number }
@@ -19,17 +20,38 @@ export default function Ward() {
   const [locating, setLocating] = useState(false)
   const [locationNote, setLocationNote] = useState<string | null>(null)
 
+  // `/ward?ward=DEL-0042` — how the dashboard leaderboard links here. Without
+  // this the deep link silently showed whatever the map happened to be on.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const wardIdParam = searchParams.get('ward')?.trim() ?? ''
+
+  // Dragging the pin emits a position per animation frame; without debouncing
+  // that is one Lambda invocation per frame for a gesture nobody has finished.
+  const settledPin = useDebounced(pin, 350)
+
   const ward = useQuery({
-    queryKey: ['ward', pin.lat.toFixed(5), pin.lng.toFixed(5)],
-    queryFn: () => api.wardByPoint(pin.lat, pin.lng),
+    queryKey: wardIdParam
+      ? ['ward', 'id', wardIdParam]
+      : ['ward', settledPin.lat.toFixed(5), settledPin.lng.toFixed(5)],
+    queryFn: () =>
+      wardIdParam ? api.ward(wardIdParam) : api.wardByPoint(settledPin.lat, settledPin.lng),
     retry: false,
   })
+
+  /** Moving the pin means "look here instead", so it clears a deep link. */
+  const movePin = useCallback(
+    (next: Pin) => {
+      setPin(next)
+      if (wardIdParam) setSearchParams({}, { replace: true })
+    },
+    [wardIdParam, setSearchParams],
+  )
 
   const useMyLocation = useCallback(async () => {
     setLocating(true)
     setLocationNote(null)
     try {
-      setPin(await currentPosition())
+      movePin(await currentPosition())
     } catch (error) {
       // Geolocation denial is an ordinary outcome on a phone, not a failure:
       // say what to do instead and leave the map usable.
@@ -39,7 +61,7 @@ export default function Ward() {
     } finally {
       setLocating(false)
     }
-  }, [])
+  }, [movePin])
 
   const outsideCoverage = ward.error instanceof ApiError && ward.error.code === 'outside_coverage'
 
@@ -75,7 +97,7 @@ export default function Ward() {
 
       <MapView
         pin={pin}
-        onPinMove={setPin}
+        onPinMove={movePin}
         className="h-[320px] w-full overflow-hidden rounded-xl border border-line sm:h-[420px]"
       />
 
@@ -145,6 +167,7 @@ export default function Ward() {
 
             <Link
               to="/report"
+              state={{ lat: pin.lat, lng: pin.lng }}
               className="block rounded-lg bg-brand px-4 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-brand-dark"
             >
               Report an issue here

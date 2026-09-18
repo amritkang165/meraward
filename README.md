@@ -14,13 +14,26 @@ and see a public accountability dashboard of which wards are being ignored.
 
 ## Status
 
-🚧 **Under active development during the event window.** This README is updated as we ship.
-
 | | |
 |---|---|
 | Live URL | _pending deploy_ |
 | Demo video | _pending_ |
 | Region | `ap-south-1` (Mumbai) |
+| Backend | 213 tests passing, no AWS credentials required to run them |
+| Frontend | builds clean; Lighthouse mobile **100 / 100 / 100 / 100** on the home page |
+
+### Lighthouse — mobile, simulated throttling, production build
+
+| page | performance | accessibility | best practices | SEO |
+|---|---|---|---|---|
+| `/` | **100** | **100** | **100** | **100** |
+| `/about` | 95 | **100** | **100** | **100** |
+| `/dashboard` | 86 | **100** | **100** | **100** |
+| `/ward` | 80 | **100** | **100** | **100** |
+
+`/ward` and `/dashboard` score lower on performance because they load MapLibre.
+That is the floor for a map page, not a defect — MapLibre is split into its own
+chunk that the home and about pages never fetch.
 
 ---
 
@@ -43,6 +56,8 @@ waterlogging.
 ---
 
 ## Architecture
+
+![MERAWARD architecture](docs/architecture.svg)
 
 ```
           React PWA · Amplify Hosting + CloudFront (HTTPS, global CDN)
@@ -88,9 +103,33 @@ docs/        PRD, decisions log, architecture            (all)
 
 ## Local setup
 
-_Filled in as each surface lands. See `backend/README.md` and `frontend/README.md`._
+### Backend
 
-Environment variables are documented in `.env.example` (never commit a real `.env`).
+```bash
+python -m pip install -r backend/requirements-dev.txt
+python -m pytest backend -q          # 213 tests, no AWS credentials needed
+```
+
+`WARDS_GEOJSON_PATH` points the ward index at a local GeoJSON file instead of S3,
+which is also how `sam local` should be run.
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+cp .env.example .env                 # then set VITE_API_BASE_URL
+npm run dev
+```
+
+### Ward boundary data
+
+```bash
+python data/prepare_wards.py data/raw/<source>.geojson data/wards.geojson
+```
+
+Environment variables are documented in `.env.example` and `frontend/.env.example`
+(never commit a real `.env`).
 
 ---
 

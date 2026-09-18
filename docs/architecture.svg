@@ -1,0 +1,152 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 700" width="1040" height="700" font-family="'Segoe UI',system-ui,-apple-system,sans-serif">
+  <title>MERAWARD architecture</title>
+  <desc>React PWA on Amplify and CloudFront calls an API Gateway HTTP API with no authorizer, fronting six Python Lambdas. Ward polygons load from S3 into an in-Lambda shapely STRtree. Complaints are written to DynamoDB and queued to SQS, where a worker drafts them with Bedrock and delivers by SES. EventBridge recomputes the Ward Neglect Index hourly.</desc>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#5a6b6e"/>
+    </marker>
+    <marker id="arrowBrand" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#0e6e68"/>
+    </marker>
+    <style>
+      .box   { fill:#ffffff; stroke:#dbe3e3; stroke-width:1.5; rx:8; }
+      .lam   { fill:#f4f6f6; stroke:#c9d6d6; stroke-width:1.5; rx:8; }
+      .brandbox { fill:#d6ebe8; stroke:#0e6e68; stroke-width:1.5; rx:8; }
+      .group { fill:none; stroke:#c9d6d6; stroke-width:1.2; stroke-dasharray:5 4; rx:12; }
+      .t     { font-size:13px; fill:#0c1618; font-weight:600; }
+      .s     { font-size:11px; fill:#5a6b6e; }
+      .tiny  { font-size:10px; fill:#5a6b6e; }
+      .lbl   { font-size:10.5px; fill:#5a6b6e; font-style:italic; }
+      .hdr   { font-size:10.5px; fill:#5a6b6e; font-weight:700; letter-spacing:.09em; }
+      .line  { stroke:#5a6b6e; stroke-width:1.4; fill:none; marker-end:url(#arrow); }
+      .bline { stroke:#0e6e68; stroke-width:1.8; fill:none; marker-end:url(#arrowBrand); }
+    </style>
+  </defs>
+
+  <rect width="1040" height="700" fill="#f4f6f6"/>
+
+  <text x="32" y="38" font-size="19" font-weight="700" fill="#0c1618">MERAWARD — architecture</text>
+  <text x="32" y="58" class="s">Ship It track · region ap-south-1 · IaC is AWS SAM · no authentication anywhere</text>
+
+  <!-- ── Client ───────────────────────────────────────────── -->
+  <rect x="300" y="82" width="440" height="56" class="brandbox"/>
+  <text x="520" y="106" class="t" text-anchor="middle">React 18 PWA · Vite · MapLibre</text>
+  <text x="520" y="124" class="s" text-anchor="middle">Amplify Hosting + CloudFront (HTTPS, global CDN)</text>
+
+  <path class="bline" d="M 520 138 L 520 172"/>
+  <text x="530" y="160" class="lbl">HTTPS / JSON</text>
+
+  <!-- ── API Gateway ─────────────────────────────────────── -->
+  <rect x="300" y="174" width="440" height="46" class="brandbox"/>
+  <text x="520" y="196" class="t" text-anchor="middle">API Gateway — HTTP API</text>
+  <text x="520" y="212" class="s" text-anchor="middle">no authorizer · throttling · CORS</text>
+
+  <!-- ── Lambdas ─────────────────────────────────────────── -->
+  <rect x="26" y="252" width="988" height="92" class="group"/>
+  <text x="38" y="270" class="hdr">PYTHON 3.12 LAMBDAS</text>
+
+  <path class="line" d="M 520 220 L 520 244"/>
+
+  <rect x="36"  y="278" width="150" height="52" class="lam"/>
+  <text x="111" y="298" class="t" text-anchor="middle">ward_lookup</text>
+  <text x="111" y="315" class="tiny" text-anchor="middle">GET /wards/*</text>
+
+  <rect x="196" y="278" width="150" height="52" class="lam"/>
+  <text x="271" y="298" class="t" text-anchor="middle">presign_upload</text>
+  <text x="271" y="315" class="tiny" text-anchor="middle">POST /presign</text>
+
+  <rect x="356" y="278" width="164" height="52" class="lam"/>
+  <text x="438" y="298" class="t" text-anchor="middle">create_complaint</text>
+  <text x="438" y="315" class="tiny" text-anchor="middle">POST /complaints → 202</text>
+
+  <rect x="530" y="278" width="164" height="52" class="lam"/>
+  <text x="612" y="298" class="t" text-anchor="middle">complaints_query</text>
+  <text x="612" y="315" class="tiny" text-anchor="middle">detail · map · leaderboard</text>
+
+  <rect x="704" y="278" width="150" height="52" class="lam"/>
+  <text x="779" y="298" class="t" text-anchor="middle">status_update</text>
+  <text x="779" y="315" class="tiny" text-anchor="middle">magic-link token</text>
+
+  <rect x="864" y="278" width="140" height="52" class="lam"/>
+  <text x="934" y="298" class="t" text-anchor="middle">health</text>
+  <text x="934" y="315" class="tiny" text-anchor="middle">GET /health</text>
+
+  <!-- ── Storage row ─────────────────────────────────────── -->
+  <rect x="36" y="400" width="300" height="96" class="box"/>
+  <text x="186" y="424" class="t" text-anchor="middle">S3 — wards.geojson</text>
+  <text x="186" y="444" class="s" text-anchor="middle">289 ward polygons, 632 KB</text>
+  <text x="186" y="463" class="s" text-anchor="middle">loaded once per cold start into a</text>
+  <text x="186" y="480" class="s" text-anchor="middle">shapely STRtree — no search cluster</text>
+
+  <path class="line" d="M 111 330 L 111 394"/>
+  <text x="120" y="366" class="lbl">point-in-polygon</text>
+
+  <rect x="356" y="400" width="180" height="96" class="box"/>
+  <text x="446" y="424" class="t" text-anchor="middle">S3 — photos</text>
+  <text x="446" y="444" class="s" text-anchor="middle">presigned PUT direct</text>
+  <text x="446" y="461" class="s" text-anchor="middle">from the phone</text>
+  <text x="446" y="480" class="s" text-anchor="middle">30-day lifecycle</text>
+
+  <path class="line" d="M 271 330 L 271 372 L 400 372 L 400 394"/>
+
+  <rect x="556" y="400" width="448" height="96" class="box"/>
+  <text x="780" y="424" class="t" text-anchor="middle">DynamoDB</text>
+  <text x="780" y="444" class="s" text-anchor="middle">Complaints — PK complaint_id · GSI1 ward_id+created_at · GSI2 status+created_at</text>
+  <text x="780" y="463" class="s" text-anchor="middle">Wards — PK ward_id · index, counts, councillor identity</text>
+  <text x="780" y="481" class="s" text-anchor="middle">on-demand billing</text>
+
+  <path class="line" d="M 438 330 L 438 356 L 700 356 L 700 394"/>
+  <path class="line" d="M 612 330 L 612 394"/>
+  <path class="line" d="M 779 330 L 779 394"/>
+
+  <!-- ── Async pipeline ──────────────────────────────────── -->
+  <rect x="26" y="530" width="700" height="140" class="group"/>
+  <text x="38" y="548" class="hdr">ASYNC — THE USER NEVER WAITS ON A MODEL</text>
+
+  <rect x="44" y="562" width="140" height="52" class="brandbox"/>
+  <text x="114" y="583" class="t" text-anchor="middle">SQS + DLQ</text>
+  <text x="114" y="600" class="tiny" text-anchor="middle">maxReceiveCount 3</text>
+
+  <path class="bline" d="M 356 304 L 346 304 L 346 512 L 114 512 L 114 556"/>
+  <text x="240" y="507" class="lbl" text-anchor="middle">enqueued after the DynamoDB write</text>
+
+  <rect x="212" y="562" width="180" height="52" class="lam"/>
+  <text x="302" y="583" class="t" text-anchor="middle">draft_and_send</text>
+  <text x="302" y="600" class="tiny" text-anchor="middle">SQS-triggered worker</text>
+
+  <path class="bline" d="M 184 588 L 206 588"/>
+
+  <rect x="420" y="548" width="140" height="40" class="box"/>
+  <text x="490" y="566" class="t" text-anchor="middle">Bedrock</text>
+  <text x="490" y="581" class="tiny" text-anchor="middle">bilingual draft (optional)</text>
+
+  <rect x="420" y="598" width="140" height="40" class="box"/>
+  <text x="490" y="616" class="t" text-anchor="middle">SES</text>
+  <text x="490" y="631" class="tiny" text-anchor="middle">demo inbox only</text>
+
+  <path class="line" d="M 392 578 L 414 570"/>
+  <path class="line" d="M 392 598 L 414 612"/>
+
+  <rect x="580" y="562" width="132" height="52" class="box"/>
+  <text x="646" y="583" class="t" text-anchor="middle">CloudWatch</text>
+  <text x="646" y="600" class="tiny" text-anchor="middle">ComplaintsDrafted</text>
+  <path class="line" d="M 560 588 L 574 588"/>
+
+  <!-- ── Scheduler ───────────────────────────────────────── -->
+  <rect x="750" y="530" width="254" height="140" class="group"/>
+  <text x="762" y="548" class="hdr">SCHEDULED</text>
+
+  <rect x="766" y="562" width="222" height="44" class="box"/>
+  <text x="877" y="581" class="t" text-anchor="middle">EventBridge Scheduler</text>
+  <text x="877" y="597" class="tiny" text-anchor="middle">rate(1 hour)</text>
+
+  <rect x="766" y="616" width="222" height="44" class="box"/>
+  <text x="877" y="635" class="t" text-anchor="middle">compute_neglect_index</text>
+  <text x="877" y="651" class="tiny" text-anchor="middle">writes back to Wards</text>
+
+  <path class="line" d="M 877 606 L 877 610"/>
+
+  <!-- fallback note -->
+  <text x="420" y="660" class="s">Bedrock is optional: a deterministic bilingual template composer runs when it is unavailable.</text>
+</svg>
