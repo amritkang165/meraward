@@ -1,7 +1,7 @@
 # Submission writeup — MERAWARD
 
-**Draft.** Paste into the submission form once the live URL and video link exist.
-Fill the three `<!-- TODO -->` markers first.
+**Draft.** Paste into the submission form. The live URL is filled in; the video
+link and the cost figure still need values.
 
 ---
 
@@ -43,7 +43,7 @@ points, plus a leaderboard of wards ranked by the Neglect Index.
 
 ## How it is built on AWS
 
-**API Gateway (HTTP API) → six Python 3.12 Lambdas → DynamoDB.** No authorizer
+**API Gateway (HTTP API) → eight Python 3.13 Lambdas → DynamoDB.** No authorizer
 anywhere: one-tap reporting *is* the product, and a signup wall would contradict the
 pitch. Abuse control is API Gateway throttling, a photo size cap, and strict
 validation of every field.
@@ -110,10 +110,13 @@ a number with four visible inputs anyone can check.
 
 ## Quality
 
-- **213 backend tests**, none requiring AWS credentials.
-- **Lighthouse mobile**: 100 performance / 100 accessibility / 100 best practices /
-  100 SEO on the home page; 100 accessibility and best practices on every page.
-- Total AWS cost for the weekend: <!-- TODO: real Cost Explorer figure -->
+- **247 backend tests**, none requiring AWS credentials.
+- **Lighthouse mobile, against the live deployment**: 100 / 100 / 100 / 100 on the home
+  page, and 100 accessibility, best practices and SEO on every page.
+- Total AWS cost for the weekend: <!-- TODO: fill from Cost Explorer before submitting.
+  It reported no data while the account was under 48 hours old. Everything here runs on
+  Lambda, DynamoDB on-demand, S3, SQS and Amplify at demo volumes, all inside Free Tier
+  allowances — but quote the real figure, not an estimate. -->
 
 ## AI tools used
 
@@ -131,7 +134,7 @@ rewritten commit dates, and all three team members commit under their own accoun
 
 ## Links
 
-- **Live URL:** <!-- TODO -->
+- **Live URL:** https://main.d1s6q0cvldi6dz.amplifyapp.com
 - **Demo video:** <!-- TODO -->
 - **Repository:** https://github.com/amritkang165/meraward
 

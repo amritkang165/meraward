@@ -8,9 +8,10 @@ Civic accountability for Delhi's municipal wards — find the ward you're standi
 file a photo-backed complaint that drafts itself into a formal letter in Hindi **and**
 English, and see a public scoreboard of which wards are being ignored.
 
-[![tests](https://img.shields.io/badge/tests-245%20passing-15803d)](backend/tests)
+[![tests](https://img.shields.io/badge/tests-247%20passing-15803d)](backend/tests)
+[![live](https://img.shields.io/badge/live-meraward-0e6e68)](https://main.d1s6q0cvldi6dz.amplifyapp.com)
 [![lighthouse](https://img.shields.io/badge/lighthouse-100%20%2F%20100%20%2F%20100%20%2F%20100-15803d)](#performance)
-[![python](https://img.shields.io/badge/python-3.12-3776ab)](backend/)
+[![python](https://img.shields.io/badge/python-3.13-3776ab)](backend/)
 [![react](https://img.shields.io/badge/react-18-149eca)](frontend/)
 [![IaC](https://img.shields.io/badge/IaC-AWS%20SAM-ff9900)](backend/README.md)
 [![licence](https://img.shields.io/badge/licence-MIT-0e6e68)](LICENSE)
@@ -153,7 +154,7 @@ cannot both win.
 ## Repository layout
 
 ```
-backend/     Python 3.12 Lambdas + AWS SAM      245 tests, no AWS needed to run them
+backend/     Python 3.13 Lambdas + AWS SAM      247 tests, no AWS needed to run them
   src/common/    shared: geometry, index, store, validation, drafting, delivery
   src/<fn>/      one package per Lambda — handler path is <fn>.app.handler
 frontend/    React 18 + Vite + TS + Tailwind + MapLibre, as a PWA
@@ -167,7 +168,7 @@ docs/        architecture, decisions log, deployment runbook, submission writeup
 
 ```bash
 python -m pip install -r backend/requirements-dev.txt
-python -m pytest backend -q          # 245 tests, no AWS credentials needed
+python -m pytest backend -q          # 247 tests, no AWS credentials needed
 ```
 
 `WARDS_GEOJSON_PATH` points the ward index at a local GeoJSON file instead of S3 —
@@ -197,29 +198,34 @@ Environment variables are documented in [`.env.example`](.env.example) and
 
 | | |
 |---|---|
-| Live URL | _pending deployment_ |
+| **Live app** | **https://main.d1s6q0cvldi6dz.amplifyapp.com** |
+| **API** | `https://9f41c4bkel.execute-api.ap-south-1.amazonaws.com` |
 | Demo video | _pending_ |
 | Region | `ap-south-1` (Mumbai) |
-| Backend | ✅ complete — 245 tests passing |
-| Frontend | ✅ complete — every screen built |
-| Ward data | ✅ 289 real polygons committed |
-| Deployment | ⏳ blocked on AWS account provisioning |
+| Backend | ✅ deployed — 247 tests passing |
+| Frontend | ✅ deployed on Amplify + CloudFront |
+| Ward data | ✅ 289 real polygons live in S3 |
+| Demo data | ✅ 240 seeded complaints across 86 wards |
 
 ### Performance
 
-Lighthouse, mobile, simulated throttling, against the production build:
+Lighthouse, mobile, simulated throttling, **measured against the live deployment** —
+not a local build:
 
 | page | performance | accessibility | best practices | SEO |
 |---|:---:|:---:|:---:|:---:|
 | `/` | **100** | **100** | **100** | **100** |
-| `/about` | 95 | **100** | **100** | **100** |
-| `/dashboard` | 86 | **100** | **100** | **100** |
-| `/ward` | 80 | **100** | **100** | **100** |
+| `/about` | 96 | **100** | **100** | **100** |
+| `/dashboard` | 76 | **100** | **100** | **100** |
+| `/ward` | 69 | **100** | **100** | **100** |
 
-`/ward` and `/dashboard` score lower on performance because they load MapLibre. That is
-the floor for a map page, not a defect — MapLibre is split into its own chunk that `/`
-and `/about` never fetch, and it is excluded from service-worker precaching so a visitor
-who only reads `/about` never pays 800 kB for it.
+Accessibility, best practices and SEO are 100 on every page, with zero console errors.
+
+`/ward` and `/dashboard` score lower on performance because they load MapLibre — 801 kB,
+and the map is the largest-contentful-paint element. That is the floor for a map page,
+not a defect. It is already split into its own chunk that `/` and `/about` never fetch,
+excluded from service-worker precaching, and preceded by preconnect hints to the tile
+origin (which moved the dashboard from 59 to 76).
 
 ---
 
