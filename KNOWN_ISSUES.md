@@ -10,7 +10,9 @@ Severity is about **impact on a user or a reviewer**, not effort to fix.
 | # | Issue | Severity | Why it stands |
 |---|---|:---:|---|
 | 1 | Ward boundaries are the **pre-2022 delimitation** — 272 MCD wards, not the 250 created by the 2022 unification. | High | The post-2022 boundaries do not appear to be published as usable open data. Disclosed in [`CREDITS.md`](CREDITS.md), on `/about`, and in the writeup. See [`docs/DECISIONS.md`](docs/DECISIONS.md). |
-| 2 | **Councillor details are not populated.** Every councillor field is null. | Medium | Verifying names against two sources for 289 wards did not fit the window, and we will not publish unsourced names. The API withholds the whole block without a `contact_source`, so the UI shows an explicit "not available" rather than a blank card. |
+| 2 | **Councillor coverage is 155 of 288 boundaries.** | Low | Names come from official SEC Delhi results but are matched by ward *name*, and only about half of the pre-2022 boundaries share a name with a post-2022 ward. Unmatched wards render an explicit "not available" rather than a guess. |
+| 2b | Councillor is matched to a boundary **by name, not by geography**. | Medium | The boundary is pre-2022 and the councillor holds the post-2022 ward of that name, so the areas overlap but are not identical. Joining on ward *number* would be far worse — it agrees in only 5 of 250 cases. Stated on `/about`, in `CREDITS.md`, and in the `contact_source` of every record. |
+| 2c | A named councillor can appear on a ward whose index is HIGH. | Medium | The index is computed from demonstration data and describes the ward. The ward page now carries an explicit statement to that effect beside the councillor block. **Do not show a named councillor next to a bad score in the demo video** — use a ward number, per the project's own rule. |
 | 3 | One source feature was dropped during preparation (no ward number). | Low | 289 of 290 features carry a usable id. The dropped one is logged by `data/prepare_wards.py` on every run. |
 
 ## Backend

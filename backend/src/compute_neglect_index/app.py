@@ -31,6 +31,7 @@ from typing import Any
 from common.aws import dynamodb_resource
 from common.config import load_config
 from common.index import compute_neglect_index
+from common.store import update_ward_stats
 
 log = logging.getLogger()
 log.setLevel(logging.INFO)
@@ -89,9 +90,7 @@ def _ward_stats(complaints: list[dict[str, Any]], now: datetime) -> dict[str, An
 
 def handler(event: dict[str, Any] | None = None, context: Any = None) -> dict[str, Any]:
     cfg = load_config()
-    resource = dynamodb_resource()
-    complaints_table = resource.Table(cfg.complaints_table)
-    wards_table = resource.Table(cfg.wards_table)
+    complaints_table = dynamodb_resource().Table(cfg.complaints_table)
 
     now = datetime.now(timezone.utc)
     by_ward: dict[str, list[dict[str, Any]]] = {}
@@ -103,13 +102,15 @@ def handler(event: dict[str, Any] | None = None, context: Any = None) -> dict[st
 
     ranked = unranked = 0
 
-    with wards_table.batch_writer() as batch:
-        for ward_id, complaints in by_ward.items():
-            stats = _ward_stats(complaints, now)
-            result = compute_neglect_index(**stats)
+    for ward_id, complaints in by_ward.items():
+        stats = _ward_stats(complaints, now)
+        result = compute_neglect_index(**stats)
 
-            item: dict[str, Any] = {
-                "ward_id": ward_id,
+        # A merge, not a replace. Councillor identity lives on the same row and
+        # is loaded separately; overwriting the item would erase it hourly.
+        update_ward_stats(
+            ward_id,
+            {
                 # The four raw inputs. Readers recompute the score from these.
                 "open_count": stats["open_count"],
                 "resolved_count": stats["resolved_count"],
@@ -121,13 +122,13 @@ def handler(event: dict[str, Any] | None = None, context: Any = None) -> dict[st
                 "neglect_index": Decimal(str(result.score)) if result.has_score else None,
                 "index_band": result.band,
                 "index_updated_at": now.isoformat(),
-            }
-            batch.put_item(Item=item)
+            },
+        )
 
-            if result.has_score:
-                ranked += 1
-            else:
-                unranked += 1
+        if result.has_score:
+            ranked += 1
+        else:
+            unranked += 1
 
     log.info(
         "recomputed %d wards (%d ranked, %d below the minimum sample)",

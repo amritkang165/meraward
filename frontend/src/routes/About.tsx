@@ -99,6 +99,19 @@ export default function About() {
           came from — presented as public record and kept visually separate from the index. Anything
           we have not sourced renders as &ldquo;not available&rdquo;. We never guess.
         </p>
+        <p>
+          Councillor names come from the MCD 2022 election results and subsequent bye-elections,
+          published by the State Election Commission, NCT of Delhi. They are matched to a boundary
+          <strong className="text-ink"> by ward name, never by ward number</strong>: the 2022
+          re-delimitation renumbered the wards, and joining on number would attach a real person to
+          a ward they do not represent in almost every case. About half of our boundaries have no
+          name match, and those simply show &ldquo;not available&rdquo;.
+        </p>
+        <p>
+          Because the boundary is the pre-2022 one and the councillor is the current holder of the
+          ward of that name, the two are matched by name rather than by identical geography. That
+          is stated on every record we publish.
+        </p>
       </Section>
 
       <Section title="We do not email real officials">

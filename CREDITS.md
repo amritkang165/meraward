@@ -57,12 +57,30 @@ redistribution of the derived `data/wards.geojson` carries the same licence.
 
 | Field | Value |
 |---|---|
-| Source | 2022 MCD election results (public record) |
-| Scope | Name and party only, where verifiable against two sources |
-| Status | **Not populated.** Every councillor field is null and renders as "not available". |
+| Dataset | `data/delhi_mcd_ward_representatives.json` — 250 wards, as of 2026-09-19 |
+| Sources | [MCD 2022 election results](https://sec.delhi.gov.in/sites/default/files/SEC/generic_multiple_files/electionreportvolume1-mcdelections2022.pdf) and [subsequent bye-elections](https://sec.delhi.gov.in/sites/default/files/SEC/circulars-orders/list_of_elected_councillors_bye_election.pdf), State Election Commission, NCT of Delhi |
+| Scope | Councillor name and party only. No contact details — we do not email officials. |
+| Coverage | **155 of 288 boundaries.** The rest render as an explicit "not available". |
 
-`contact_source` is mandatory on any populated councillor field — the API withholds the
-whole councillor block if it is missing, so a name can never be published unattributed.
+### Matched by ward name, never by ward number
+
+The councillor list is the **post-2022** delimitation (250 wards); our boundaries are the
+**pre-2022** one. The 2022 re-delimitation renumbered everything, so the two numbering
+schemes do not correspond — joining on `ward_number` agrees with the ward name in only
+**5 of 250 cases**.
+
+Joining on number would attach a real, named, elected person to a ward they do not
+represent in 98% of cases. So [`data/load_councillors.py`](data/load_councillors.py)
+matches on normalised ward name and writes nothing where there is no match.
+
+Every populated record carries a `contact_source` stating both the source **and** that
+the match was by name rather than by identical geography. `contact_source` is mandatory:
+the API withholds the entire councillor block without it, so a name can never be
+published unattributed.
+
+MLA and MP fields in the source dataset are `null` by design — those represent assembly
+and parliamentary constituencies, not municipal wards, and the upstream author declined
+to guess the crosswalk. We have not guessed either.
 
 ## Libraries with attribution requirements
 

@@ -145,7 +145,14 @@ export default function Ward() {
             />
 
             {/* Identity only, and visually separated from the index above it.
-                Withheld entirely by the API when we have not sourced it. */}
+                Withheld entirely by the API when we have not sourced it.
+
+                The separation matters more now that real councillors are
+                loaded: this card can show a named person on a ward whose index
+                is HIGH, and that index is computed from demonstration data. The
+                disclaimer below is not decoration - it is the difference
+                between naming who represents an area and implying they caused
+                a number we generated. */}
             <div className="border-t border-line pt-3">
               <h3 className="text-[11px] uppercase tracking-wide text-ink-3">Your councillor</h3>
               {ward.data.councillor ? (
@@ -154,7 +161,12 @@ export default function Ward() {
                   {ward.data.councillor.party ? (
                     <p className="text-sm text-ink-2">{ward.data.councillor.party}</p>
                   ) : null}
-                  <p className="mt-1 text-xs text-ink-3">
+                  <p className="mt-2 rounded-md bg-surface-2 px-2.5 py-2 text-xs leading-relaxed text-ink-2">
+                    The Neglect Index above describes <strong className="text-ink">this ward</strong>,
+                    not this councillor&rsquo;s performance. It is computed from demonstration data
+                    and is not a measure of any individual.
+                  </p>
+                  <p className="mt-1.5 text-xs leading-relaxed text-ink-3">
                     Source: {ward.data.councillor.source}
                   </p>
                 </>

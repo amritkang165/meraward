@@ -28,6 +28,7 @@ __all__ = [
     "scan_wards",
     "update_complaint_draft",
     "update_complaint_status",
+    "update_ward_stats",
     "ward_stats",
 ]
 
@@ -302,4 +303,22 @@ def record_delivery(
         ExpressionAttributeNames=names,
         ExpressionAttributeValues=values,
         ConditionExpression="attribute_exists(complaint_id)",
+    )
+
+
+def update_ward_stats(ward_id: str, stats: dict[str, Any]) -> None:
+    """Merge computed statistics into a ward row, leaving everything else alone.
+
+    Deliberately an update and not a put. Councillor identity is loaded into the
+    same row by a separate process, and a ``put_item`` here would silently erase
+    it on the next scheduled run - a bug that would take an hour to appear and
+    look like data that "just vanished".
+    """
+    names = {f"#f{i}": k for i, k in enumerate(stats)}
+    values = {f":v{i}": v for i, v in enumerate(stats.values())}
+    _table(load_config().wards_table).update_item(
+        Key={"ward_id": ward_id},
+        UpdateExpression="SET " + ", ".join(f"#f{i} = :v{i}" for i in range(len(stats))),
+        ExpressionAttributeNames=names,
+        ExpressionAttributeValues=values,
     )

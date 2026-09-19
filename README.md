@@ -198,7 +198,7 @@ Environment variables are documented in [`.env.example`](.env.example) and
 
 | | |
 |---|---|
-| **Live app** | **https://main.d1s6q0cvldi6dz.amplifyapp.com** |
+| **Live app** | **https://main.d1s6q0cvldi6dz. .com** |
 | **API** | `https://9f41c4bkel.execute-api.ap-south-1.amazonaws.com` |
 | Demo video | _pending_ |
 | Region | `ap-south-1` (Mumbai) |
