@@ -7,7 +7,7 @@
  * is a public URL judges will click. Attribution is rendered in-map.
  */
 import { useEffect, useRef } from 'react'
-import * as maplibregl from 'maplibre-gl'
+import * as maplibregl from '../lib/maplibre'
 import type { Map as MapLibreMap, Marker } from 'maplibre-gl'
 
 const STYLE_URL =

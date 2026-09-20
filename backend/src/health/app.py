@@ -55,6 +55,8 @@ def handler(event: dict[str, Any] | None = None, context: Any = None) -> dict[st
                 "mode": "bedrock" if cfg.use_bedrock else "template",
             },
             "delivery_mode": cfg.delivery_mode,
+            "environment": "local-demo" if cfg.local_demo else "aws",
+            "write_budgets": {"enabled": bool(cfg.rate_limit_table), "window_seconds": 60},
         }
     )
 

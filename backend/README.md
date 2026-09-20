@@ -1,131 +1,63 @@
-# MERAWARD — backend
+# MeraWard backend
 
-Python 3.12 Lambdas behind an API Gateway HTTP API (no authorizer), deployed with AWS SAM.
+Python 3.13 Lambda handlers for ward lookup, complaint drafting and public tracking. The same handlers power the local sandbox and the AWS SAM deployment. There is no server account system: write budgets limit basic abuse, and a private capability token authorizes complaint-status changes.
 
-## Layout
+## Run it
 
-```
-backend/
-  template.yaml          SAM template — all Lambdas, tables, queue, bucket, IAM
-  src/
-    common/              shared: ward geometry, DynamoDB access, responses
-    ward_lookup/         GET /wards/lookup, GET /wards/{ward_id}
-    presign_upload/      POST /complaints/presign
-    create_complaint/    POST /complaints  (fast path, <1s, enqueues to SQS)
-    complaints_query/    GET /complaints, /complaints/{id}, /leaderboard
-    status_update/       POST /complaints/{id}/status  (magic-link token)
-    draft_and_send/      SQS worker: Bedrock draft → DynamoDB → SES
-    compute_neglect_index/  EventBridge hourly
-    health/              GET /health
-```
-
-## Owners
-
-`common`, `ward_lookup`, `create_complaint`, `complaints_query`, `draft_and_send` — **Muneer**
-`template.yaml`, IAM, deploy pipeline, `compute_neglect_index`, seed — **Kartik**
-
-## Getting started
-
-_To be filled in once `sam init` lands._
-
-## Deploying
-
-`template.yaml` is in this directory and validates clean (`sam validate --lint`).
-It reuses the logical IDs of the original `meraward-infra` stack, so a deploy
-**updates it in place** — the buckets keep their names and `wards.geojson` stays
-where it is.
+The root [local demo instructions](../README.md#run-the-local-demo) start the complete app. For a native API in a Python 3.13 virtual environment, from the root:
 
 ```bash
-cd backend
-sam build --template template.yaml
-sam deploy --stack-name meraward-infra            --region ap-south-1 --profile meraward            --capabilities CAPABILITY_IAM --resolve-s3            --parameter-overrides MerawardEmail=<verified-ses-address>                                  AllowedOrigin=<amplify-domain>
+python -m pip install -r backend/requirements-demo.txt
+python backend/local_demo.py
 ```
 
-`samconfig.toml` is deliberately gitignored: it would otherwise put a teammate's
-personal email address in a public repository. Create your own locally if you
-want the flags remembered.
+The API is at `http://localhost:8101`; the Moto service endpoint is at `http://localhost:5001`. Both bind to loopback by default. The frontend origin is `http://localhost:5174`. CLI `--port`, `--aws-port` and `--origin` change these together when needed; the two ports must differ. `--host 0.0.0.0` is used inside Compose, whose published ports remain loopback-only.
 
-After deploying, `GET /health` reports `ward_index.loaded` — that is the check
-that `shapely` imported on the real runtime.
+The sandbox is temporary. It forces dummy credentials/local endpoints, loads the committed ward geometry, seeds synthetic reports and runs the real queue worker. It does not use an AWS profile, Bedrock, SES or CloudWatch metrics. Recreating/stopping it discards all records and photos.
 
-### Runtime
+## Modules and endpoints
 
-**python3.13.** `sam build` verified that `shapely` 2.1.2 packages as
-`cp313-cp313-manylinux_2_17_x86_64`, the correct Linux wheel for Lambda, with
-numpy's native `.so` files alongside it. 3.13 is also the interpreter the tests
-run against locally. An earlier stack deployed 3.14, which nothing was tested on.
+| Module | Contract |
+| --- | --- |
+| `ward_lookup` | `GET /wards/lookup?lat=&lng=`, `GET /wards/{ward_id}` |
+| `presign_upload` | `POST /complaints/presign`; bounded image type/length, direct S3 PUT URL |
+| `create_complaint` | `POST /complaints`; validates evidence/location, saves before enqueueing, returns 202 and private token |
+| `complaints_query` | Public complaint detail, map markers and leaderboard |
+| `status_update` | Token-protected acknowledge/resolve/reopen, with conditional status writes |
+| `draft_and_send` | SQS worker: draft, save, demo delivery record and production metric |
+| `compute_neglect_index` | Recompute ward statistics; hourly on AWS |
+| `health` | Geometry loading, configured drafting/delivery mode and write-budget state |
+| `common/wards.py` | Cached Shapely STRtree over the configured geometry |
+| `common/store.py`, `common/views.py` | DynamoDB access and public-field allowlists |
+| `common/composer.py`, `common/bedrock.py` | Deterministic bilingual floor and optional model adapter |
+| `common/rate_limit.py` | Conditional DynamoDB counters per source, scope and minute |
 
-## SAM wiring — the details
+`WARDS_GEOJSON_PATH` selects a local file. Otherwise the service loads `WARDS_GEOJSON_KEY` from `DATA_BUCKET` in S3. The local runner always chooses the bundled file. `COMPLAINTS_TABLE`, `WARDS_TABLE` and index names select the AWS stores; `RATE_LIMIT_TABLE` activates the shared write guard. See [maintenance configuration](../docs/MAINTENANCE.md) and [the environment example](../.env.example).
 
-Handlers import shared code as `from common.x import y`, so **every function uses
-`CodeUri: backend/src`** and a dotted handler path:
+## Checks
 
-```yaml
-WardLookupFunction:
-  Type: AWS::Serverless::Function
-  Properties:
-    CodeUri: src/
-    Handler: ward_lookup.app.handler
-    Runtime: python3.12
-```
-
-Each handler directory is a package (has `__init__.py`). One `CodeUri` for all
-functions keeps `common/` importable everywhere without a layer.
-
-`shapely` is the only non-stdlib runtime dependency (`requirements.txt`). It ships
-a manylinux wheel, but **verify it imports on a deployed Lambda before anything
-depends on it** — an architecture mismatch here is a classic two-hour sink.
-
-## Local development
+From the root in the configured Python environment:
 
 ```bash
 python -m pip install -r backend/requirements-dev.txt
 python -m pytest backend -q
+sam validate --lint --template-file backend/template.yaml --region ap-south-1
 ```
 
-Tests need no AWS credentials. `WARDS_GEOJSON_PATH` points the ward index at a
-local GeoJSON file instead of S3, which is also how `sam local` should be run.
+With the sandbox running:
 
-## What exists so far
-
-| Module | Purpose |
-|---|---|
-| `common/composer.py` | Deterministic bilingual complaint letters (the Bedrock-free floor) |
-| `common/wards.py` | Ward polygons, STRtree, point-in-polygon, cached per cold start |
-| `common/index.py` | Ward Neglect Index (PRD §13) |
-| `common/store.py` | DynamoDB reads; councillor block with enforced provenance |
-| `common/responses.py` | HTTP API responses, CORS, Decimal-safe JSON |
-| `common/config.py` | Environment configuration |
-| `common/ids.py` | ULID complaint ids, status tokens |
-| `ward_lookup/app.py` | `GET /wards/lookup`, `GET /wards/{ward_id}` |
-| `common/validation.py` | Write-path input validation |
-| `common/aws.py` | Lazily-created, container-cached boto3 clients |
-| `presign_upload/app.py` | `POST /complaints/presign` |
-| `create_complaint/app.py` | `POST /complaints` — fast path, 202 + SQS enqueue |
-| `health/app.py` | `GET /health` |
-| `common/views.py` | Public projections — the allow-list that decides what is publishable |
-| `complaints_query/app.py` | `GET /complaints/{id}`, `GET /complaints`, `GET /leaderboard` |
-| `status_update/app.py` | `POST /complaints/{id}/status` — magic-link lifecycle |
-| `common/bedrock.py` | Bedrock Converse adapter — optional, fails into the composer |
-| `common/delivery.py` | SES delivery per mode; `SES_LIVE` refused at runtime |
-| `draft_and_send/app.py` | SQS worker — draft, deliver, record, measure |
-
-
-## `draft_and_send` — event source configuration
-
-The worker returns partial batch failures, so only genuinely failed records are
-redelivered. That requires the event source mapping to opt in:
-
-```yaml
-Events:
-  DraftQueue:
-    Type: SQS
-    Properties:
-      Queue: !GetAtt DraftQueue.Arn
-      BatchSize: 5
-      FunctionResponseTypes:
-        - ReportBatchItemFailures   # required, or the whole batch retries
+```bash
+python backend/tests/smoke_demo.py
 ```
 
-Without `ReportBatchItemFailures`, one bad record redelivers the entire batch and
-every complaint in it gets redrafted.
+Unit/regression tests use fakes or isolated Moto state. The HTTP smoke uses actual SDK calls against the local service endpoint and refuses to write to a non-loopback API. These tests do not establish real AWS permissions or production S3 signature enforcement.
+
+## SAM deployment contract
+
+Every function uses `CodeUri: src/` relative to `backend/template.yaml`, a dotted handler such as `ward_lookup.app.handler`, and runtime `python3.13`. `common/` is therefore importable by every function. The native Shapely wheel must match Lambda's Linux runtime; use a container build when packaging from Windows.
+
+The SQS mapping uses `FunctionResponseTypes: [ReportBatchItemFailures]` and batch size 5. Preserve that setting so a failed item does not redeliver every successful item in the batch. The worker's persisted terminal state avoids redrafting an already completed complaint.
+
+The template keeps the existing resource logical IDs and physical complaint/ward table names. It adds a separate TTL counter table; the three write functions receive only `dynamodb:UpdateItem` on that table. `AllowedOrigin` consistently configures API Gateway, Lambda responses and S3 PUT CORS. Existing deployments need the reviewed template deployed to activate those changes.
+
+Use the [AWS runbook](../docs/AWS_SETUP.md) for the shared stack. No CI workflow deploys it. `SES_LIVE` remains refused; keep delivery in `DEMO_OUTBOX` unless a separately authorized verified-inbox test is intended. Original team ownership and the shared SAM history are preserved in the [root credits](../README.md#team-and-contribution).

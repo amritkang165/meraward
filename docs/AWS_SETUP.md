@@ -1,138 +1,74 @@
-# AWS setup — status and handover
+# AWS setup and shared-stack deployment
 
-**Owner:** Kartik · **Unblocked by:** Muneer (toolchain + config)
-**Region for everything:** `ap-south-1` (Mumbai)
+MeraWard's existing AWS deployment is separate from the isolated local sandbox.
+Use the [root Compose instructions](../README.md#run-the-local-demo) to develop or
+demonstrate without AWS credentials, real reports or email.
 
----
+## Last read-only verification
 
-## Already done on Muneer's machine
+On 2026-10-31 the existing `meraward` profile authenticated successfully, the
+`meraward-infra` stack reported `UPDATE_COMPLETE`, and the published frontend and
+health endpoint returned HTTP 200. Health reported 289 boundaries loaded,
+template drafting and `DEMO_OUTBOX`. No cloud resource was changed or live report
+filed during that verification.
 
-| | |
-|---|---|
-| AWS CLI | ✅ `aws-cli/2.36.48` |
-| AWS SAM CLI | ✅ `1.166.2` |
-| `~/.aws/config` | ✅ `default` and `meraward` profiles, both pinned to `ap-south-1`, `output = json` |
-| Credentials | ❌ **none** — this is the blocker |
+That check does not mean maintenance-branch changes have been deployed. Follow
+the team's PR review process before updating the shared stack.
 
-Nothing is provisioned. No account is linked. The toolchain is ready the instant a credential exists.
-
----
-
-## What only a human can do
-
-AWS account creation cannot be automated or scripted. It requires, in order:
-
-1. Email + root password
-2. **Phone number verification** — SMS or voice call, live code
-3. **A payment card** — debit and RuPay are accepted; AWS places a
-   **verification charge of about ₹2** which is refunded
-4. CAPTCHA
-5. Support plan selection → choose **Basic (free)**
-
-There is no CLI, API or headless path around steps 2–4. Someone has to sit and do it.
-
-**Use `muneer.alam320@gmail.com`** as the root email so it matches the hackathon
-registration and the credits request.
-
----
-
-## Step 1 — Create or recover the account
-
-**If Kartik's existing account is the problem**, decide quickly which it is:
-
-| Symptom | Fix | Time |
-|---|---|---|
-| Forgot password | Root password reset via email | minutes |
-| MFA device lost | Root MFA recovery — needs email **and** phone | hours, sometimes days |
-| Account "suspended"/"pending verification" | Support case. **Do not wait on this.** | 24h+ |
-| Card declined at signup | Try a different debit card / RuPay | minutes |
-
-> **Rule: if recovery is not resolved in 20 minutes, stop and create a fresh account
-> under `muneer.alam320@gmail.com`.** We have hours, not days. A new Free Tier account
-> also comes with its own credits.
-
-Sign-up: https://portal.aws.amazon.com/billing/signup
-
-## Step 2 — Create an IAM user for CLI access
-
-Never use root access keys.
-
-1. IAM → Users → Create user → `meraward-dev`
-2. Attach `AdministratorAccess` (hackathon scope; this is not a production account)
-3. Security credentials → Create access key → **Command Line Interface (CLI)**
-4. Copy the access key ID and secret **once** — it is never shown again
-
-```bash
-aws configure --profile meraward
-# AWS Access Key ID:     <paste>
-# AWS Secret Access Key: <paste>
-# Default region name:   ap-south-1
-# Default output format: json
-```
-
-## Step 3 — Verify it works
+## Verify the intended account
 
 ```bash
 aws sts get-caller-identity --profile meraward
-aws s3 ls --profile meraward
-aws dynamodb list-tables --region ap-south-1 --profile meraward
+aws cloudformation describe-stacks --stack-name meraward-infra --region ap-south-1 --profile meraward --query 'Stacks[0].StackStatus'
 ```
 
-`get-caller-identity` returning an account number is **Gate A's real green light**.
+Use the team's existing profile and region; do not create a replacement account
+or copy credentials into this repository. `samconfig.toml`, env files and secrets
+stay ignored. A valid identity does not prove it can update every stack resource.
 
-## Step 4 — Set a budget alert immediately
+## Validate, build and review
+
+From the repository root:
 
 ```bash
-aws budgets describe-budgets --account-id <ACCOUNT_ID> --profile meraward
+sam validate --lint --template-file backend/template.yaml --region ap-south-1
+sam build --use-container --template-file backend/template.yaml
 ```
 
-Console → Billing → Budgets → create alerts at **$5** and **$10** (PRD §11).
+The container build matters on Windows because Shapely needs a Linux Python 3.13
+wheel for Lambda, not the local Windows wheel. Unit tests, browser checks and
+the isolated demo should pass first. Do not rename the existing logical IDs or
+physical complaint/ward tables to accommodate a new stack.
 
-## Step 5 — Bedrock (optional, do not block on it)
+The maintenance changes add a TTL write-budget table, narrow UpdateItem grants
+for the three write functions, aggregate API throttles and one shared frontend
+origin for API/S3 CORS. Review those changes before deployment. Counter rows use
+fixed-minute keys and expire asynchronously. The existing deployment does not
+gain the per-client guard until its functions/config/table are updated together.
 
-> The organisers confirmed on 2026-09-18: **Bedrock is not mandatory.**
-> *"Access can take a while to come through, so don't hold your project up waiting for it...
-> the only thing we ask is that you deploy on AWS."*
+## Deploy only after review
 
-Request access anyway — it costs nothing and it is a strict upgrade if it lands:
+From a built, reviewed checkout, a maintainer can use:
 
 ```bash
-aws bedrock list-foundation-models  --region ap-south-1 --profile meraward
-aws bedrock list-inference-profiles --region ap-south-1 --profile meraward
+sam deploy --guided --stack-name meraward-infra --region ap-south-1 --profile meraward --capabilities CAPABILITY_IAM
 ```
 
-Current Claude models are **not served regionally** from `ap-south-1` — reach them through a
-**global cross-region inference profile**. Put the exact profile ID you actually see into
-`BEDROCK_INFERENCE_PROFILE_ID`. Never hardcode a model ID.
+Retain the existing verified demo-email parameter and set `AllowedOrigin` to the
+actual frontend origin, with no path or trailing slash. Review the change set;
+do not accept unexpected replacements or deletion of existing data resources.
+Keep `DELIVERY_MODE=DEMO_OUTBOX` and Bedrock disabled. Nothing here authorizes
+email to real officials; `SES_LIVE` remains refused in the application.
 
-Preference: **Claude Haiku 4.5** → Claude Sonnet 5 → **Amazon Nova Lite** (Amazon's own models
-usually clear access fastest).
+The frontend needs Node.js 22.12+ or 24, its actual API URL in
+`VITE_API_BASE_URL`, and an SPA rewrite (`/<*>` to `/index.html`) for deep links.
+The current repository has no automatic deployment workflow.
 
-If nothing lands by T-20, ship the deterministic template composer and move on.
+## Post-deployment checks
 
-## Step 6 — SES identities
-
-Sandbox is assumed and is **the design**, not a failure (PRD §12). Verify immediately:
-
-```bash
-aws ses verify-email-identity --email-address <addr> --region ap-south-1 --profile meraward
-```
-
-Verify all three team inboxes plus a `meraward-demo@` address. Submit the production-access
-request too — free to ask, do not plan on it.
-
----
-
-## Credits
-
-| | |
-|---|---|
-| AWS Free Tier | up to **$200** on a new account |
-| Hackathon team credits | **$100**, via the request form — **one submission per team** |
-| Form | https://forms.gle/v1fMc8YboFvERz8j6 |
-
-The organisers noted that participants who declared themselves absolute beginners were **not**
-issued credits, on the reasoning that they could not yet use them. Answer the experience
-question honestly, but note the team is shipping SAM, Lambda, DynamoDB and SQS.
-
-**Building on Free Tier carries no prize disadvantage** — confirmed by the organisers.
+Check public health, the expected frontend origin, geometry load, template/outbox
+mode and `write_budgets.enabled`. Verify browser preflight and direct photo upload
+with synthetic evidence. An isolated Moto pass does not verify AWS IAM, Lambda's
+packaged native wheel, S3 signature enforcement or deployed CORS. Record the
+tested commit and deployed endpoints; do not publish fresh performance scores
+without a new measurement.

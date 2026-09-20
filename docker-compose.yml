@@ -1,0 +1,29 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.demo
+    ports:
+      - "127.0.0.1:8101:8101"
+      - "127.0.0.1:5001:5001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8101/health', timeout=3)"]
+      interval: 5s
+      timeout: 4s
+      retries: 30
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.demo
+    ports:
+      - "127.0.0.1:5174:5174"
+    environment:
+      VITE_API_BASE_URL: http://localhost:8101
+      VITE_LOCAL_DEMO: 'true'
+      VITE_USE_POLLING: 'true'
+    volumes:
+      - ./frontend/src:/app/src:ro
+      - ./frontend/public:/app/public:ro
+    depends_on:
+      api:
+        condition: service_healthy

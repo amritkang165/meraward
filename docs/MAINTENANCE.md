@@ -77,3 +77,25 @@ npm audit --omit=dev
 CI runs backend tests, the frontend build and production dependency audit, and
 SAM lint without AWS credentials. Shared-stack deployment is a separate step
 after PR review; no workflow deploys AWS resources.
+
+## Isolated local runtime
+
+`backend/local_demo.py` starts Moto on loopback, forces dummy SDK credentials and
+endpoints, creates separate complaint/ward/counter tables, a photo bucket and a
+draft queue, and seeds only synthetic reports. The bundled geometry is unchanged.
+It invokes the actual handlers and SQS worker, with template/outbox modes forced
+and CloudWatch emission disabled locally. Data is temporary, with no reset route
+exposed. Local index statistics refresh after drafts/status changes; production
+keeps its existing hourly schedule. The UI labels the sandbox and every record.
+
+The frontend uses a Vite-resolved MapLibre worker asset; this fixes a blank-map
+failure introduced by the required MapLibre patch migration. Source/public mounts
+and polling support Windows Fast Refresh. The manifest references the existing
+SVG icon. Public complaint text identifies outbox or verified-inbox modes without
+claiming that an email was sent. Templates no longer invent an MCD affiliation
+for every ward office.
+
+`backend/tests/smoke_demo.py` uses only the Python standard library and refuses
+non-loopback URLs/non-sandbox health before writing. It exercises actual HTTP
+upload/draft/read/status behavior. The separate local-configuration regression
+proves inherited profiles and per-service cloud endpoints are replaced.

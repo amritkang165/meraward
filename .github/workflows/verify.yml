@@ -45,3 +45,16 @@ jobs:
           python-version: '3.13'
       - uses: aws-actions/setup-sam@v2
       - run: sam validate --lint --template-file backend/template.yaml --region ap-south-1
+  local-demo:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: docker compose -p meraward-ci up -d --build --wait
+      - run: python backend/tests/smoke_demo.py
+      - if: failure()
+        run: docker compose -p meraward-ci logs --tail 80
+      - if: always()
+        run: docker compose -p meraward-ci down

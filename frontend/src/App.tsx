@@ -74,6 +74,12 @@ export default function App() {
         </div>
       </header>
 
+      {import.meta.env.VITE_LOCAL_DEMO === 'true' ? (
+        <p role="note" className="bg-brand-soft px-4 py-2 text-center text-xs font-semibold text-brand-dark">
+          Local sandbox: synthetic reports, template letters and demo outbox. Records reset when stopped.
+        </p>
+      ) : null}
+
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 sm:py-7">
         <Suspense fallback={<PageLoader />}>
           <Routes>

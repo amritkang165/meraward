@@ -112,7 +112,7 @@ export default function ComplaintDetail() {
       </section>
 
       <DemoNotice>
-        Delivery on this deployment goes to a demo inbox, never to a real official.
+        Delivery uses the configured demo outbox or verified demo inbox, never a real official.
       </DemoNotice>
     </article>
   )

@@ -139,6 +139,8 @@ def emit_drafted_metric(source: str) -> None:
     Cheap, and it is the thing that ticks upward on camera while the demo runs.
     Never raises: telemetry must not break delivery.
     """
+    if load_config().local_demo:
+        return
     try:
         import boto3
 

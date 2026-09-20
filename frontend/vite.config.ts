@@ -4,6 +4,9 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  server: {
+    watch: { usePolling: process.env.VITE_USE_POLLING === 'true' },
+  },
   plugins: [
     react(),
     tailwindcss(),
@@ -18,7 +21,7 @@ export default defineConfig({
         background_color: '#ffffff',
         display: 'standalone',
         start_url: '/',
-        icons: [],
+        icons: [{ src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }],
       },
       workbox: {
         // The API is never precached: a stale Neglect Index is worse than a spinner.

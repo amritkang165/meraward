@@ -22,7 +22,7 @@ const METHODS: Array<{
 const PROCESS = [
   ['Tell us', 'Speak, upload a photo, or write in your own words.'],
   ['Review it', 'Check the issue, ward, evidence, and complaint language.'],
-  ['Track it', 'Get a permanent ID and follow every status change publicly.'],
+  ['Track it', 'Keep a tracking ID and follow status changes publicly.'],
 ]
 
 export default function Home() {
@@ -44,7 +44,7 @@ export default function Home() {
         <div className="relative z-10 grid items-center gap-8 lg:grid-cols-[1.15fr_.85fr]">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-brand/10 bg-white/70 px-3 py-1.5 text-xs font-bold text-brand-dark shadow-sm backdrop-blur">
-              <Icon name="sparkles" className="h-4 w-4" /> AI-assisted civic reporting · Delhi demo
+              <Icon name="sparkles" className="h-4 w-4" /> Voice, photo or text · Delhi demo
             </div>
             <h1 className="mt-5 max-w-3xl text-balance text-[2.35rem] font-black leading-[1.02] tracking-[-0.045em] text-ink sm:text-5xl">
               A civic complaint that feels less like a form.
@@ -59,7 +59,7 @@ export default function Home() {
             <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold text-ink-2">
               <span className="inline-flex items-center gap-1.5"><Icon name="shield" className="h-4 w-4 text-brand" /> No signup</span>
               <span className="inline-flex items-center gap-1.5"><Icon name="globe" className="h-4 w-4 text-brand" /> English + हिन्दी</span>
-              <span className="inline-flex items-center gap-1.5"><Icon name="map" className="h-4 w-4 text-brand" /> Ward-aware routing</span>
+              <span className="inline-flex items-center gap-1.5"><Icon name="map" className="h-4 w-4 text-brand" /> Ward-addressed drafts</span>
             </div>
           </div>
           <div className="hero-orbit" aria-hidden="true">
@@ -110,7 +110,7 @@ export default function Home() {
 
       <section className="app-card p-5 sm:p-7">
         <div className="grid gap-6 lg:grid-cols-[.55fr_1.45fr] lg:items-center">
-          <div><p className="section-kicker">Human in the loop</p><h2 className="mt-1 text-2xl font-extrabold tracking-tight text-ink">You stay in control.</h2><p className="mt-2 text-sm leading-6 text-ink-2">AI helps structure the complaint. It never submits behind your back.</p></div>
+          <div><p className="section-kicker">Human in the loop</p><h2 className="mt-1 text-2xl font-extrabold tracking-tight text-ink">You stay in control.</h2><p className="mt-2 text-sm leading-6 text-ink-2">Review the prepared complaint before submitting it. Nothing is filed behind your back.</p></div>
           <ol className="grid gap-3 sm:grid-cols-3">
             {PROCESS.map(([title, description], index) => (
               <li key={title} className="rounded-2xl bg-ground/80 p-4"><span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-ink text-xs font-black text-white">{index + 1}</span><h3 className="mt-3 font-bold text-ink">{title}</h3><p className="mt-1 text-sm leading-5 text-ink-3">{description}</p></li>
