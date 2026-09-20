@@ -25,6 +25,7 @@ from common.aws import s3_client
 from common.config import load_config
 from common.ids import new_ulid
 from common.responses import ApiError, ok, server_error
+from common.rate_limit import enforce_write_budget
 from common.validation import extension_for, validate_content_type
 
 log = logging.getLogger()
@@ -76,6 +77,7 @@ def _photo_key(content_type: str) -> str:
 
 def handler(event: dict[str, Any], context: Any = None) -> dict[str, Any]:
     try:
+        enforce_write_budget(event, "upload")
         cfg = load_config()
         if not cfg.photos_bucket:
             log.error("PHOTOS_BUCKET is not configured")

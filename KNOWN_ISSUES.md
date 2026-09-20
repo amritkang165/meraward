@@ -23,7 +23,7 @@ Severity is about **impact on a user or a reviewer**, not effort to fix.
 | 5 | The leaderboard's 60-second cache is **per Lambda container**, not shared. | Low | Two concurrent containers can serve values up to 60 s apart. A shared cache is an extra service for a page that changes hourly. |
 | 6 | Map queries return at most **2,000 markers**, then set `truncated: true`. | Low | Delhi's demo dataset is a few hundred rows. The cap exists so an unbounded response can never be produced. |
 | 7 | An unfiltered map query does a **DynamoDB scan**. | Low | Correct at this size — it is a few hundred items, and the filtered paths use the `ward-created-index` and `status-created-index` GSIs. It would need revisiting at city-wide real usage. |
-| 8 | Abuse control on the write path is **API Gateway throttling plus validation only**. | Medium | There is no authentication anywhere by design — one-tap reporting *is* the product. A per-IP limit and a photo-content check would be the next additions. |
+| 8 | Per-source fixed-minute write budgets and aggregate throttles are implemented; deployment is pending review. | Medium | The maintenance template adds a separate TTL table. Shared networks share budgets; this is not authentication, bot detection or image-content validation. See `docs/MAINTENANCE.md`. |
 
 ## Frontend
 
@@ -38,13 +38,21 @@ Severity is about **impact on a user or a reviewer**, not effort to fix.
 
 | # | Issue | Severity | Why it stands |
 |---|---|:---:|---|
-| 14 | **SES stays in sandbox**, so email reaches verified identities only. | Low | This is the design, not a limitation we are working around. We do not send to real officials — see [`README.md`](README.md#data--demo-mode-disclaimer). |
+| 14 | **SES stays in sandbox**, so email reaches verified identities only. | Low | The default is a demo outbox with no email. Real officials are not contacted; see [deployment and scope](README.md#deployment-and-scope). |
 | 15 | ~~`shapely` unverified on a deployed Lambda~~ | ✅ **resolved** | Deployed and confirmed. `GET /health` on the live API returns `ward_index: {loaded: true, wards: 289}`, and a live `/wards/lookup` resolves Connaught Place to NDMC. shapely 2.1.2 packages as `cp313-cp313-manylinux_2_17_x86_64`. |
 | 16 | Photos bucket had no CORS configuration. | ✅ **resolved** | Added to the SAM template and deployed; a real signed browser `PUT` to S3 returns 200. |
-| 17 | `AllowedOrigin` for the photos bucket is `*`. | Medium | Convenient during the build, not correct afterwards. Set it to the Amplify domain: it is a template parameter, so it is a one-line deploy. |
+| 17 | API/S3 CORS is constrained consistently in the maintenance template; deployed change not yet verified. | Medium | One `AllowedOrigin` parameter drives API Gateway, Lambda responses and photo PUTs, with a non-wildcard default. Review/deploy separately; CORS is not authentication. |
 | 9 | `/ward` scores 69 and `/dashboard` 76 on Lighthouse performance against the live deployment. | Low | MapLibre is 801 kB and is the LCP element. Already chunk-split, precache-excluded and preconnect-hinted (which took the dashboard from 59 to 76). Lowering it further means not showing a map. |
 
 ---
 
 Something here fixed, or something new found? Update this table in the same commit as
 the change.
+
+## Maintenance verification and limits
+
+- Local Compose uses temporary Moto stores and synthetic reports. API restart/recreation resets them. It is not production storage or proof of AWS IAM/signature enforcement. Map tiles still need internet access.
+- MapLibre 6 uses an explicit worker URL resolved by Vite. A browser regression caught the missing optimized worker asset before the final capture; build success alone was insufficient. Windows bind mounts use polling for Fast Refresh.
+- Photo HTTP/browser round trips, template drafts and private status changes are verified locally. Unsupported speech API fallback is verified by simulating API absence in Chrome, not by claiming speech transcription or a physical-device pass.
+- Production npm audit is clear at verification; the full development audit retains Workbox toolchain advisories. The map bundle remains large. Historical Lighthouse numbers above describe the earlier deployment and were not re-measured.
+- Complaint templates address a ward office generically. They no longer label every NDMC/cantonment location as Municipal Corporation of Delhi; real delivery/recipient validation remains outside the demo.

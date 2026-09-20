@@ -198,3 +198,11 @@ def test_draft_is_immutable():
     d = compose("POTHOLE", "Sadar Bazar")
     with pytest.raises(Exception):
         d.subject = "tampered"
+
+
+@pytest.mark.parametrize("ward_id", ["DEL-NDMC-02", "DEL-CB-01"])
+def test_non_mcd_draft_does_not_invent_a_municipal_corporation_recipient(ward_id):
+    draft = compose("POTHOLE", "Demo ward", ward_id=ward_id)
+    assert "Municipal Corporation of Delhi" not in draft.body_en
+    assert "नगर निगम, दिल्ली" not in draft.body_hi
+    assert "The Ward Office" in draft.body_en and ward_id in draft.body_en

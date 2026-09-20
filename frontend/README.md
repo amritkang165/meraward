@@ -1,69 +1,53 @@
-# MERAWARD — frontend
+# MeraWard frontend
 
-React 18 · Vite · TypeScript · Tailwind v4 · MapLibre GL JS · TanStack Query.
-Mobile-first PWA, deployed on AWS Amplify Hosting. **Owner: Amrit.**
+React 18, TypeScript, Tailwind, TanStack Query, React Router 7 and MapLibre 6. The interface supports report intake, a review step, bilingual drafts, public tracking, private status links and a ward dashboard. Amrit led the original frontend work; team contributions are credited in the [root README](../README.md#team-and-contribution).
+
+## Local development
+
+The simplest full stack is `docker compose up --build` from the root, then **http://localhost:5174**. Source/public bind mounts and Windows-friendly polling provide Fast Refresh without rebuilding the frontend image.
+
+For native development, use Node.js **22.12+ or 24**. Start the [native local API](../backend/README.md#run-it), then from this directory:
 
 ```bash
-npm install
-cp .env.example .env     # set VITE_API_BASE_URL to the deployed API stage
-npm run dev              # dev server
-npm run build            # typecheck + production build
-npm run typecheck        # types only
+npm ci
+npm run dev -- --port 5174 --strictPort
 ```
+
+Put local settings in ignored `frontend/.env.local`:
+
+```dotenv
+VITE_API_BASE_URL=http://localhost:8101
+VITE_LOCAL_DEMO=true
+```
+
+`VITE_API_BASE_URL` must identify a real API. Leaving it empty against a static SPA can return `index.html` with status 200; the client correctly rejects that as an invalid JSON response. `VITE_LOCAL_DEMO` displays the sandbox banner. Optional `VITE_BASEMAP_STYLE_URL` changes the MapLibre style; the default CARTO map needs internet access and retains its attribution.
 
 ## Routes
 
-All built.
+| Route | Purpose |
+| --- | --- |
+| `/` | Report entry points and public summary |
+| `/ward` | Pin/location lookup and ward information |
+| `/report?mode=voice`, `photo` or `write` | Evidence, issue, location and review before submission |
+| `/c/:id` | Public letter, photo, ward and timeline |
+| `/u/:token?id=:id` | Private token-authorized status changes |
+| `/dashboard` | Map/heatmap, filters and ward leaderboard |
+| `/about` | Dataset and index limits |
 
-| Route | What it does |
-|---|---|
-| `/` | Hero, how-it-works, entry points |
-| `/ward` | Map with a draggable pin → ward card + banded Neglect Index gauge. Accepts `?ward=DEL-0042` |
-| `/report` | Three steps — issue type → photo → place — then a polling processing view |
-| `/dashboard` | Heatmap or points, status/issue filters, paged leaderboard |
-| `/c/:id` | Complaint detail: photo, bilingual letter, status timeline |
-| `/u/:token` | Magic-link status update. Needs `?id=<complaint_id>` |
-| `/about` | Data provenance, sources, licences, index methodology |
+Speech capture depends on the browser. The transcript textbox remains available when the API is missing or recognition fails; no speech transcription service is required for typed reports. HEIC can fall back to the original upload because browsers may not decode it. Guest aliases are device-local and do not grant API permissions. Never include a private update URL in an issue or screenshot.
 
-## Layout
+## Map and caching
 
+MapLibre 6 is an ES module with a separate worker asset. [`src/lib/maplibre.ts`](src/lib/maplibre.ts) imports that asset with Vite's `?url` and calls `setWorkerUrl` before any map is created. Import runtime map APIs through that wrapper; direct initialization can leave Vite's optimized worker URL pointing to a missing file. Verify the actual map in a browser, not only the TypeScript build.
+
+Maps and non-home routes load separately. PWA setup creates a manifest/service worker, precaches the app shell and caches selected map assets/tiles on use. It does not provide a complete offline complaint workflow: API writes and uncached basemap data need a connection. Historical Lighthouse/bundle figures do not apply automatically after a dependency update.
+
+## Checks
+
+```bash
+npm run typecheck
+npm run build
+npm audit --omit=dev
 ```
-src/
-  api/          client.ts (fetch + typed errors), types.ts (mirrors the API)
-  components/   MapView, ComplaintsMap, NeglectGauge, states
-  lib/          useDebounced, image compression
-  routes/       one file per route
-```
 
-`src/api/types.ts` mirrors the backend exactly. **The committed backend tests in
-`backend/tests/` are the specification** — where a type here disagrees with a test
-there, the test is right.
-
-## Things that will bite you
-
-- **Amplify needs an SPA rewrite** (`/<*>` → `/index.html`) or every deep link 404s,
-  including `/ward`, `/c/:id` and `/u/:token`.
-- **Verify basemap tiles from the deployed origin**, not localhost — provider referrer
-  rules bite exactly there.
-- **Record and test the demo on Android Chrome.** iOS Safari's camera and
-  `MediaRecorder` behaviour is its own afternoon.
-- A 2xx response whose body is not JSON is treated as an error, not an empty success.
-  That is deliberate: with `VITE_API_BASE_URL` unset, requests hit the SPA fallback and
-  get `index.html` back with a 200.
-
-## Performance notes
-
-Decisions here exist for a measured reason, not by habit.
-
-| Choice | Why |
-|---|---|
-| MapLibre in its own chunk, loaded per route | 801 kB that `/` and `/about` never fetch |
-| Excluded from service-worker precache | Precache went 1,119 KiB → 336 KiB |
-| Client-side photo compression | A 6 MB phone photo becomes ~300–600 kB before upload |
-| Debounced pin → ward lookup | Otherwise one API call per animation frame while dragging |
-| GeoJSON layers, not DOM markers | Hundreds of pins draw on the GPU instead of the main thread |
-| Leaderboard pages 25 at a time; filters run client-side | Changing a filter costs no request |
-
-Lighthouse (mobile, simulated throttling): `/` **100 / 100 / 100 / 100**,
-`/about` 95, `/dashboard` 86, `/ward` 80 — accessibility, best practices and SEO are
-100 on every page.
+Build checks TypeScript and generates the production service worker. CI also runs the production dependency audit. See [maintenance notes](../docs/MAINTENANCE.md) for the separately disclosed development-tool advisories. Browser verification should cover map-worker loading, text/photo intake, review, the actual queued letter, private-link status updates, unsupported-speech typed fallback and mobile overflow. A deployment needs an SPA rewrite for deep links; see [AWS setup](../docs/AWS_SETUP.md).

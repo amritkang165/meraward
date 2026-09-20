@@ -7,7 +7,8 @@
  * is a public URL judges will click. Attribution is rendered in-map.
  */
 import { useEffect, useRef } from 'react'
-import maplibregl, { type Map as MapLibreMap, type Marker } from 'maplibre-gl'
+import * as maplibregl from '../lib/maplibre'
+import type { Map as MapLibreMap, Marker } from 'maplibre-gl'
 
 const STYLE_URL =
   import.meta.env.VITE_BASEMAP_STYLE_URL ??

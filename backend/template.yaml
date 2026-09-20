@@ -21,10 +21,11 @@ Parameters:
     Description: Verified SES identity used as both sender and demo recipient.
   AllowedOrigin:
     Type: String
-    Default: "*"
+    Default: "https://main.d1s6q0cvldi6dz.amplifyapp.com"
+    AllowedPattern: '^https?://[^/\s]+$'
     Description: >
-      Origin allowed to PUT photos to S3. Set this to the Amplify domain before
-      judging; "*" is convenient during the build, not correct afterwards.
+      Single frontend origin (scheme, host and optional port, no trailing slash).
+      Used consistently by API Gateway, Lambda responses and photo uploads.
 
 Globals:
   Function:
@@ -56,6 +57,11 @@ Globals:
         SES_SENDER: !Ref MerawardEmail
         SES_DEMO_RECIPIENT: !Ref MerawardEmail
         MAX_PHOTO_BYTES: "8388608"
+        ALLOWED_ORIGIN: !Ref AllowedOrigin
+        RATE_LIMIT_TABLE: !Ref WriteBudgetTable
+        REPORTS_PER_MINUTE: "10"
+        UPLOADS_PER_MINUTE: "20"
+        STATUS_UPDATES_PER_MINUTE: "30"
         # Bedrock stays off until a real inference profile id exists. The
         # deterministic composer runs in its place and the product is complete.
         BEDROCK_ENABLED: "false"
@@ -69,10 +75,15 @@ Resources:
     Type: AWS::Serverless::HttpApi
     Properties:
       StageName: $default
+      # Gateway throttles cap aggregate load; per-client budgets are enforced
+      # atomically by the write Lambdas, including across warm containers.
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 50
+        ThrottlingRateLimit: 25
       CorsConfiguration:
-        AllowOrigins: ["*"]
-        AllowHeaders: ["*"]
-        AllowMethods: ["*"]
+        AllowOrigins: [!Ref AllowedOrigin]
+        AllowHeaders: ["content-type"]
+        AllowMethods: [GET, POST, OPTIONS]
 
   # ─────────────────────────────────────────────── Data stores
 
@@ -111,6 +122,22 @@ Resources:
         - { AttributeName: ward_id, AttributeType: S }
       KeySchema:
         - { AttributeName: ward_id, KeyType: HASH }
+
+  # Ephemeral abuse counters live separately from public complaints and ward
+  # scans. Minute keys enforce the limit even before asynchronous TTL deletion.
+  # No fixed physical name: a reviewed deployment can provision this table
+  # without renaming or replacing any existing resource. No citizen content.
+  WriteBudgetTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: client_window, AttributeType: S }
+      KeySchema:
+        - { AttributeName: client_window, KeyType: HASH }
+      TimeToLiveSpecification:
+        AttributeName: expires_at
+        Enabled: true
 
   MerawardPhotosBucket:
     Type: AWS::S3::Bucket
@@ -201,6 +228,13 @@ Resources:
       Timeout: 10
       Policies:
         - S3WritePolicy: { BucketName: !Ref MerawardPhotosBucket }
+        # Generated operation set: IAM Policy Autopilot, common/rate_limit.py.
+        # Narrow its table wildcard to this stack's counter table. The table
+        # uses AWS-owned encryption, so no customer-key KMS grant is needed.
+        - Statement:
+            - Effect: Allow
+              Action: dynamodb:UpdateItem
+              Resource: !GetAtt WriteBudgetTable.Arn
       Events:
         Presign:
           Type: HttpApi
@@ -214,6 +248,10 @@ Resources:
     Properties:
       Handler: create_complaint.app.handler
       Policies:
+        - Statement:
+            - Effect: Allow
+              Action: dynamodb:UpdateItem
+              Resource: !GetAtt WriteBudgetTable.Arn
         - S3ReadPolicy: { BucketName: !Ref MerawardDataBucket }
         - DynamoDBCrudPolicy: { TableName: !Ref ComplaintsTable }
         - SQSSendMessagePolicy: { QueueName: !GetAtt ComplaintQueue.QueueName }
@@ -249,6 +287,10 @@ Resources:
     Properties:
       Handler: status_update.app.handler
       Policies:
+        - Statement:
+            - Effect: Allow
+              Action: dynamodb:UpdateItem
+              Resource: !GetAtt WriteBudgetTable.Arn
         - S3ReadPolicy: { BucketName: !Ref MerawardPhotosBucket }
         - DynamoDBCrudPolicy: { TableName: !Ref ComplaintsTable }
       Events:

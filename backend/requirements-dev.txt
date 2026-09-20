@@ -1,3 +1,4 @@
 -r requirements.txt
-boto3>=1.34
-pytest>=8.0
+boto3==1.43.123
+pytest==9.2.0
+moto[dynamodb,s3,sqs]==5.2.5

@@ -13,6 +13,7 @@ from __future__ import annotations
 import decimal
 import json
 from typing import Any, Final, Mapping
+from .config import load_config
 
 __all__ = [
     "ApiError",
@@ -25,10 +26,8 @@ __all__ = [
     "server_error",
 ]
 
-# The write path has no authorizer and no cookies, so a permissive origin is
-# correct here rather than lazy: this is a public read/write civic API.
+# Browser origin restriction is separate from write throttling and authorization.
 _CORS: Final[dict[str, str]] = {
-    "access-control-allow-origin": "*",
     "access-control-allow-headers": "content-type",
     "access-control-allow-methods": "GET,POST,OPTIONS",
 }
@@ -67,6 +66,7 @@ def _response(
     headers = {
         "content-type": "application/json; charset=utf-8",
         **_CORS,
+        "access-control-allow-origin": load_config().allowed_origin,
     }
     if cache_seconds > 0:
         headers["cache-control"] = f"public, max-age={cache_seconds}"
@@ -113,11 +113,12 @@ class ApiError(Exception):
     Saves threading error returns back up through helper functions.
     """
 
-    def __init__(self, status: int, code: str, message: str) -> None:
+    def __init__(self, status: int, code: str, message: str, *, headers: Mapping[str, str] | None = None) -> None:
         super().__init__(message)
         self.status = status
         self.code = code
         self.message = message
+        self.headers = headers
 
     def to_response(self) -> dict[str, Any]:
-        return error(self.status, self.code, self.message)
+        return _response(self.status, {"error": {"code": self.code, "message": self.message}}, extra_headers=self.headers)

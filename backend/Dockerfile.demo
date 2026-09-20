@@ -1,0 +1,9 @@
+FROM python:3.13-slim
+WORKDIR /app
+COPY backend/requirements*.txt ./backend/
+RUN pip install --no-cache-dir -r backend/requirements-demo.txt
+COPY backend/src ./backend/src
+COPY backend/local_demo.py ./backend/local_demo.py
+COPY data/wards.geojson ./data/wards.geojson
+EXPOSE 8101 5001
+CMD ["python", "-u", "backend/local_demo.py", "--host", "0.0.0.0"]

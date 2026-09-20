@@ -8,7 +8,9 @@
  * mid-range Android; the GPU draws these instead.
  */
 import { useEffect, useRef } from 'react'
-import maplibregl, { type Map as MapLibreMap } from 'maplibre-gl'
+import * as maplibregl from '../lib/maplibre'
+import type { Map as MapLibreMap } from 'maplibre-gl'
+import type { FeatureCollection } from 'geojson'
 import type { MapMarker } from '../api/types'
 
 const STYLE_URL =
@@ -31,7 +33,7 @@ const STATUS_COLOUR: maplibregl.ExpressionSpecification = [
   '#b91c1c',
 ]
 
-function toGeoJson(markers: MapMarker[]): GeoJSON.FeatureCollection {
+function toGeoJson(markers: MapMarker[]): FeatureCollection {
   return {
     type: 'FeatureCollection',
     features: markers.map((m) => ({

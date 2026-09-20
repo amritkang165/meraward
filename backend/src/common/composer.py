@@ -358,7 +358,6 @@ def compose(
         for part in [
             "To,\n"
             f"The Ward Office, {ward_full}\n"
-            "Municipal Corporation of Delhi",
             f"Subject: {subject}",
             "Sir/Madam,",
             f"I am a resident of {ward}. {copy.problem_en}",
@@ -380,7 +379,6 @@ def compose(
         for part in [
             "सेवा में,\n"
             f"वार्ड कार्यालय, {ward_full}\n"
-            "नगर निगम, दिल्ली",
             f"विषय: {subject_hi}",
             "महोदय/महोदया,",
             f"मैं {ward} का निवासी हूँ। {copy.problem_hi}",
