@@ -110,6 +110,94 @@ a[role='button'] {
   transform: translateY(-1px);
 }
 
+.spinner {
+  display: inline-block;
+  height: 1rem;
+  width: 1rem;
+  flex: none;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 999px;
+  animation: spin 700ms linear infinite;
+}
+
+.page-loader {
+  display: flex;
+  min-height: 18rem;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  border: 1px solid var(--color-line);
+  border-radius: 1.25rem;
+  background: rgb(255 255 255 / 0.78);
+}
+
+.page-loader__mark {
+  position: relative;
+  display: inline-flex;
+  height: 3rem;
+  width: 3rem;
+  overflow: hidden;
+  border-radius: 1rem 1rem 1.35rem 1rem;
+  background: linear-gradient(145deg, #0f8f78 0 62%, #f59e0b 62%);
+  box-shadow: 0 10px 24px rgb(14 110 104 / 0.2);
+}
+
+.guest-login-button,
+.guest-profile-button {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border: 1px solid var(--color-line);
+  border-radius: 0.75rem;
+  background: rgb(255 255 255 / 0.82);
+  padding: 0 0.7rem;
+  color: var(--color-ink-2);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.guest-profile-button { padding-left: 0.35rem; }
+
+.guest-avatar {
+  display: inline-flex;
+  height: 1.9rem;
+  width: 1.9rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.65rem;
+  background: linear-gradient(135deg, var(--color-brand), #0f8f78);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 900;
+}
+
+.guest-avatar--large { height: 2.5rem; width: 2.5rem; font-size: 0.9rem; }
+
+.guest-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.65rem);
+  z-index: 60;
+  width: min(19rem, calc(100vw - 2rem));
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: 1rem;
+  background: white;
+  box-shadow: 0 24px 65px rgb(8 47 73 / 0.2);
+}
+
+.processing-card {
+  border: 1px solid rgb(14 110 104 / 0.18);
+  border-radius: 1rem;
+  background: linear-gradient(135deg, rgb(214 235 232 / 0.72), rgb(255 255 255 / 0.9));
+  padding: 1rem;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
 .section-kicker {
   font-size: 0.68rem;
   font-weight: 800;

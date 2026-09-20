@@ -5,8 +5,9 @@ import { ApiError, api, currentPosition, uploadPhoto } from '../api/client'
 import type { IssueType } from '../api/types'
 import { compressPhoto, formatBytes } from '../lib/image'
 import { useDebounced } from '../lib/useDebounced'
-import { DemoNotice, ErrorState, Skeleton } from '../components/states'
+import { DemoNotice, ErrorState, Skeleton, Spinner } from '../components/states'
 import { Icon, type IconName } from '../components/Icon'
+import { useGuest } from '../auth/GuestAuth'
 
 const MapView = lazy(() => import('../components/MapView').then((module) => ({ default: module.MapView })))
 
@@ -47,6 +48,7 @@ interface SpeechRecognitionLike {
 type SpeechRecognitionConstructor = new () => SpeechRecognitionLike
 
 export default function Report() {
+  const { profile, rememberComplaint } = useGuest()
   const [searchParams, setSearchParams] = useSearchParams()
   const location = useLocation() as { state?: { lat?: number; lng?: number } }
   const requestedMode = searchParams.get('mode')
@@ -62,6 +64,7 @@ export default function Report() {
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [recording, setRecording] = useState(false)
+  const [locating, setLocating] = useState(false)
   const [created, setCreated] = useState<{ id: string; token: string } | null>(null)
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
 
@@ -178,6 +181,7 @@ export default function Report() {
         input_mode: mode,
         preferred_language: language,
       })
+      rememberComplaint(result.complaint_id)
       setCreated({ id: result.complaint_id, token: result.status_token })
       setStage('done')
     } catch (caught) {
@@ -186,7 +190,19 @@ export default function Report() {
     } finally {
       setBusy(null)
     }
-  }, [description, issue, language, landmark, mode, photo, pin, ward.data])
+  }, [description, issue, language, landmark, mode, photo, pin, rememberComplaint, ward.data])
+
+  const useMyLocation = useCallback(async () => {
+    setLocating(true)
+    setError(null)
+    try {
+      setPin(await currentPosition())
+    } catch {
+      setError('Location is unavailable. Move the pin on the map instead.')
+    } finally {
+      setLocating(false)
+    }
+  }, [])
 
   if (stage === 'done' && created) return <Submitted id={created.id} token={created.token} />
   if (!mode) return <ModeChooser onSelect={selectMode} />
@@ -236,7 +252,7 @@ export default function Report() {
           <div><p className="section-kicker">Route it correctly</p><h2 className="mt-1 text-xl font-extrabold text-ink">Where is the problem?</h2><p className="mt-1 text-sm text-ink-2">Move the pin or use your current location. You can review the ward before filing.</p></div>
           <Suspense fallback={<Skeleton className="h-64 w-full" />}><MapView pin={pin} onPinMove={setPin} className="h-64 w-full overflow-hidden rounded-2xl border border-line sm:h-80" /></Suspense>
           <div className="grid gap-3 sm:grid-cols-[auto_1fr]">
-            <button type="button" onClick={() => void currentPosition().then(setPin).catch(() => setError('Location is unavailable. Move the pin on the map instead.'))} className="button-secondary inline-flex items-center gap-2"><Icon name="location" className="h-4 w-4 text-brand" /> Use my location</button>
+            <button type="button" disabled={locating} onClick={() => void useMyLocation()} className="button-secondary inline-flex items-center gap-2 disabled:opacity-60">{locating ? <Spinner /> : <Icon name="location" className="h-4 w-4 text-brand" />} {locating ? 'Finding you…' : 'Use my location'}</button>
             <div className="rounded-xl border border-line bg-ground/70 px-4 py-3 text-sm" aria-live="polite">
               {ward.isPending ? <Skeleton className="h-5 w-44" /> : ward.isError ? <span className="text-band-moderate">Move the pin inside Delhi.</span> : <span><span className="text-ink-3">Selected ward </span><strong className="text-ink">{ward.data.ward_name}</strong><span className="ml-1 font-mono text-xs text-ink-3">{ward.data.ward_id}</span></span>}
             </div>
@@ -247,7 +263,7 @@ export default function Report() {
       ) : null}
 
       {(stage === 'review' || stage === 'sending') && issue && ward.data ? (
-        <ReviewComplaint mode={mode} issue={issue} description={description} photo={photo} landmark={landmark} wardName={ward.data.ward_name} wardId={ward.data.ward_id} language={language} busy={busy} sending={stage === 'sending'} onLanguage={setLanguage} onEdit={(target) => setStage(target)} onSubmit={() => void submit()} />
+        <ReviewComplaint mode={mode} issue={issue} description={description} photo={photo} landmark={landmark} wardName={ward.data.ward_name} wardId={ward.data.ward_id} language={language} busy={busy} sending={stage === 'sending'} guestAlias={profile?.alias ?? null} onLanguage={setLanguage} onEdit={(target) => setStage(target)} onSubmit={() => void submit()} />
       ) : null}
     </div>
   )
@@ -275,15 +291,20 @@ function IssuePicker({ value, onChange }: { value: IssueType | null; onChange: (
 }
 
 function PhotoPicker({ photo, busy, onPick, prominent = false }: { photo: PhotoState | null; busy: string | null; onPick: (file: File | undefined) => void; prominent?: boolean }) {
-  return <div>{photo ? <figure className="overflow-hidden rounded-2xl border border-line bg-ground"><img src={photo.preview} alt="Selected civic issue" className="max-h-64 w-full object-cover" /><figcaption className="flex items-center justify-between gap-2 px-3 py-2 text-xs text-ink-3"><span><Icon name="check" className="mr-1 inline h-3.5 w-3.5 text-brand" />Ready · {photo.saved}</span><label className="cursor-pointer font-bold text-brand">Replace<input type="file" accept="image/*" capture="environment" className="sr-only" onChange={(event) => void onPick(event.target.files?.[0])} /></label></figcaption></figure> : <label className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-line bg-ground/60 text-center transition-colors hover:border-brand ${prominent ? 'min-h-64 p-8' : 'min-h-36 p-5'}`}><span className="icon-badge"><Icon name="camera" className="h-5 w-5" /></span><strong className="mt-3 text-sm text-ink">{busy ?? 'Take or choose a photo'}</strong><span className="mt-1 text-xs text-ink-3">JPEG, PNG, WebP or HEIC · resized on your device</span><input type="file" accept="image/*" capture="environment" className="sr-only" onChange={(event) => void onPick(event.target.files?.[0])} /></label>}</div>
+  return <div>{photo ? <figure className="overflow-hidden rounded-2xl border border-line bg-ground"><img src={photo.preview} alt="Selected civic issue" className="max-h-64 w-full object-cover" /><figcaption className="flex items-center justify-between gap-2 px-3 py-2 text-xs text-ink-3"><span><Icon name="check" className="mr-1 inline h-3.5 w-3.5 text-brand" />Ready · {photo.saved}</span><label className="cursor-pointer font-bold text-brand">Replace<input type="file" accept="image/*" capture="environment" className="sr-only" onChange={(event) => void onPick(event.target.files?.[0])} /></label></figcaption></figure> : <label className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-line bg-ground/60 text-center transition-colors hover:border-brand ${prominent ? 'min-h-64 p-8' : 'min-h-36 p-5'}`}><span className="icon-badge">{busy ? <Spinner className="h-5 w-5" /> : <Icon name="camera" className="h-5 w-5" />}</span><strong className="mt-3 text-sm text-ink">{busy ?? 'Take or choose a photo'}</strong><span className="mt-1 text-xs text-ink-3">JPEG, PNG, WebP or HEIC · resized on your device</span><input type="file" accept="image/*" capture="environment" className="sr-only" disabled={Boolean(busy)} onChange={(event) => void onPick(event.target.files?.[0])} /></label>}</div>
 }
 
-function ReviewComplaint({ mode, issue, description, photo, landmark, wardName, wardId, language, busy, sending, onLanguage, onEdit, onSubmit }: { mode: EntryMode; issue: IssueType; description: string; photo: PhotoState | null; landmark: string; wardName: string; wardId: string; language: 'en' | 'hi'; busy: string | null; sending: boolean; onLanguage: (language: 'en' | 'hi') => void; onEdit: (stage: 'details' | 'place') => void; onSubmit: () => void }) {
+function ReviewComplaint({ mode, issue, description, photo, landmark, wardName, wardId, language, busy, sending, guestAlias, onLanguage, onEdit, onSubmit }: { mode: EntryMode; issue: IssueType; description: string; photo: PhotoState | null; landmark: string; wardName: string; wardId: string; language: 'en' | 'hi'; busy: string | null; sending: boolean; guestAlias: string | null; onLanguage: (language: 'en' | 'hi') => void; onEdit: (stage: 'details' | 'place') => void; onSubmit: () => void }) {
   const issueLabel = ISSUES.find((item) => item.id === issue)?.label ?? issue
   const subject = `${issueLabel} requiring attention — ${wardName}`
   const body = description.trim() || `I wish to report a ${issueLabel.toLowerCase()} issue in ${wardName}.`
   const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(`${body}\n\nWard: ${wardId}${landmark ? `\nLandmark: ${landmark}` : ''}`)}`
-  return <section className="space-y-4"><div className="app-card overflow-hidden"><header className="flex flex-wrap items-start justify-between gap-3 border-b border-line bg-ground/50 p-5 sm:p-6"><div><p className="section-kicker">Human review</p><h2 className="mt-1 text-xl font-extrabold text-ink">Review your complaint</h2><p className="mt-1 text-sm text-ink-2">Check every detail. MERAWARD will not submit without your confirmation.</p></div><span className="inline-flex items-center gap-1.5 rounded-full bg-band-low-soft px-3 py-1 text-xs font-bold text-band-low"><Icon name="shield" className="h-4 w-4" /> You are in control</span></header><div className="grid gap-0 divide-y divide-line sm:grid-cols-2 sm:divide-x sm:divide-y-0"><ReviewField label="Issue" value={issueLabel} detail={`${METHODS[mode].short} report`} onEdit={() => onEdit('details')} /><ReviewField label="Ward" value={wardName} detail={wardId} onEdit={() => onEdit('place')} /></div><div className="border-t border-line p-5 sm:p-6"><div className="flex items-center justify-between gap-2"><span className="text-xs font-bold uppercase tracking-wide text-ink-3">Citizen's description</span><button type="button" onClick={() => onEdit('details')} className="text-xs font-bold text-brand">Edit</button></div><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-ink">{body}</p>{landmark ? <p className="mt-2 text-xs text-ink-3">Near {landmark}</p> : null}{photo ? <div className="mt-4 flex items-center gap-3 rounded-xl bg-ground p-2"><img src={photo.preview} alt="Complaint evidence" className="h-14 w-16 rounded-lg object-cover" /><span className="text-xs font-semibold text-ink-2">1 evidence photo attached</span></div> : <p className="mt-4 rounded-xl bg-ground px-3 py-2 text-xs text-ink-3">No photo attached · text-only report</p>}</div><div className="border-t border-line bg-ground/55 p-5 sm:p-6"><fieldset><legend className="text-xs font-bold uppercase tracking-wide text-ink-3">Complaint language</legend><div className="mt-2 grid grid-cols-2 gap-2"><button type="button" onClick={() => onLanguage('en')} aria-pressed={language === 'en'} className={`rounded-xl border px-4 py-3 text-sm font-bold ${language === 'en' ? 'border-brand bg-brand-soft text-brand-dark' : 'border-line bg-white text-ink-2'}`}>English</button><button type="button" onClick={() => onLanguage('hi')} aria-pressed={language === 'hi'} className={`rounded-xl border px-4 py-3 text-sm font-bold ${language === 'hi' ? 'border-brand bg-brand-soft text-brand-dark' : 'border-line bg-white text-ink-2'}`}>हिन्दी</button></div></fieldset></div></div><div className="grid gap-2 sm:grid-cols-[1fr_1.35fr]"><a href={mailto} className="button-secondary inline-flex items-center justify-center gap-2 text-center"><Icon name="document" className="h-4 w-4" /> Open email draft</a><button type="button" disabled={sending} onClick={onSubmit} className="button-primary inline-flex items-center justify-center gap-2 disabled:opacity-60">{sending ? (busy ?? 'Submitting…') : 'Submit through MERAWARD'} <Icon name="arrow" className="h-4 w-4" /></button></div><DemoNotice>Opening an email draft does not file through MERAWARD. “Submit through MERAWARD” creates the public tracking record. Delivery remains in the configured demo outbox.</DemoNotice></section>
+  return <section className="space-y-4"><div className="app-card overflow-hidden"><header className="flex flex-wrap items-start justify-between gap-3 border-b border-line bg-ground/50 p-5 sm:p-6"><div><p className="section-kicker">Human review</p><h2 className="mt-1 text-xl font-extrabold text-ink">Review your complaint</h2><p className="mt-1 text-sm text-ink-2">Check every detail. MERAWARD will not submit without your confirmation.</p></div><span className="inline-flex items-center gap-1.5 rounded-full bg-band-low-soft px-3 py-1 text-xs font-bold text-band-low"><Icon name="shield" className="h-4 w-4" /> You are in control</span></header><div className="grid gap-0 divide-y divide-line sm:grid-cols-2 sm:divide-x sm:divide-y-0"><ReviewField label="Issue" value={issueLabel} detail={`${METHODS[mode].short} report`} onEdit={() => onEdit('details')} /><ReviewField label="Ward" value={wardName} detail={wardId} onEdit={() => onEdit('place')} /></div><div className="border-t border-line p-5 sm:p-6"><div className="flex items-center justify-between gap-2"><span className="text-xs font-bold uppercase tracking-wide text-ink-3">Citizen's description</span><button type="button" onClick={() => onEdit('details')} className="text-xs font-bold text-brand">Edit</button></div><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-ink">{body}</p>{landmark ? <p className="mt-2 text-xs text-ink-3">Near {landmark}</p> : null}{photo ? <div className="mt-4 flex items-center gap-3 rounded-xl bg-ground p-2"><img src={photo.preview} alt="Complaint evidence" className="h-14 w-16 rounded-lg object-cover" /><span className="text-xs font-semibold text-ink-2">1 evidence photo attached</span></div> : <p className="mt-4 rounded-xl bg-ground px-3 py-2 text-xs text-ink-3">No photo attached · text-only report</p>}</div><div className="border-t border-line bg-ground/55 p-5 sm:p-6"><fieldset><legend className="text-xs font-bold uppercase tracking-wide text-ink-3">Complaint language</legend><div className="mt-2 grid grid-cols-2 gap-2"><button type="button" onClick={() => onLanguage('en')} aria-pressed={language === 'en'} className={`rounded-xl border px-4 py-3 text-sm font-bold ${language === 'en' ? 'border-brand bg-brand-soft text-brand-dark' : 'border-line bg-white text-ink-2'}`}>English</button><button type="button" onClick={() => onLanguage('hi')} aria-pressed={language === 'hi'} className={`rounded-xl border px-4 py-3 text-sm font-bold ${language === 'hi' ? 'border-brand bg-brand-soft text-brand-dark' : 'border-line bg-white text-ink-2'}`}>हिन्दी</button></div></fieldset>{guestAlias ? <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-ink-3"><Icon name="user" className="h-3.5 w-3.5" /> This report will be remembered for <strong className="text-ink-2">{guestAlias}</strong> on this device.</p> : null}</div></div>{sending ? <ProcessingStatus busy={busy} hasPhoto={Boolean(photo)} /> : null}<div className="grid gap-2 sm:grid-cols-[1fr_1.35fr]"><a href={mailto} aria-disabled={sending} className={`button-secondary inline-flex items-center justify-center gap-2 text-center ${sending ? 'pointer-events-none opacity-50' : ''}`}><Icon name="document" className="h-4 w-4" /> Open email draft</a><button type="button" disabled={sending} onClick={onSubmit} className="button-primary inline-flex items-center justify-center gap-2 disabled:opacity-60">{sending ? <><Spinner /> {busy ?? 'Submitting…'}</> : <>Submit through MERAWARD <Icon name="arrow" className="h-4 w-4" /></>}</button></div><DemoNotice>Opening an email draft does not file through MERAWARD. “Submit through MERAWARD” creates the public tracking record. Delivery remains in the configured demo outbox.</DemoNotice></section>
+}
+
+function ProcessingStatus({ busy, hasPhoto }: { busy: string | null; hasPhoto: boolean }) {
+  const uploading = busy?.startsWith('Uploading') ?? false
+  return <div className="processing-card" role="status" aria-live="polite"><div className="flex items-center gap-3"><Spinner className="h-5 w-5 text-brand" /><div><p className="text-sm font-extrabold text-ink">{busy ?? 'Submitting your complaint…'}</p><p className="mt-0.5 text-xs text-ink-3">Please keep this page open. Your report is being safely recorded.</p></div></div><ol className="mt-4 grid grid-cols-3 gap-2 text-[10px] font-bold"><li className={hasPhoto && uploading ? 'text-brand-dark' : 'text-ink-3'}>{hasPhoto ? '1. Upload evidence' : '1. Check details'}</li><li className={!uploading ? 'text-brand-dark' : 'text-ink-3'}>2. Create record</li><li className="text-ink-3">3. Prepare letter</li></ol></div>
 }
 
 function ReviewField({ label, value, detail, onEdit }: { label: string; value: string; detail: string; onEdit: () => void }) {
@@ -308,7 +329,7 @@ function Submitted({ id, token }: { id: string; token: string }) {
   const complaint = useQuery({ queryKey: ['complaint', id], queryFn: () => api.complaint(id), refetchInterval: (query) => { const status = query.state.data?.draft_status; return status === 'DRAFTED' || status === 'SENT' || status === 'FAILED' ? false : 2000 }, staleTime: 0 })
   const drafting = complaint.data?.draft_status === 'PENDING' || complaint.isPending
   useEffect(() => { try { localStorage.setItem(`meraward:token:${id}`, token) } catch { /* The on-screen link remains available. */ } }, [id, token])
-  return <div className="mx-auto max-w-2xl space-y-4"><div className="app-card p-7 text-center"><span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-band-low-soft text-band-low"><Icon name="check" className="h-7 w-7" /></span><p className="section-kicker mt-4">Submitted</p><h1 className="mt-1 text-2xl font-black tracking-tight text-ink">Your complaint is on the record.</h1><p className="mt-2 font-mono text-xs text-ink-3">{id}</p></div>{drafting ? <div className="app-card p-5" aria-live="polite"><p className="text-sm font-bold text-ink">Preparing the formal bilingual letter…</p><p className="mt-1 text-sm text-ink-2">The complaint is already saved. This normally takes a few seconds.</p><div className="mt-4 space-y-2"><Skeleton className="h-4 w-4/5" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-3/5" /></div></div> : complaint.data ? <BilingualDraft subject={complaint.data.subject} en={complaint.data.body_en} hi={complaint.data.body_hi} /> : null}<div className="grid gap-2 sm:grid-cols-2"><Link to={`/c/${id}`} className="button-primary text-center">Track this complaint</Link><Link to={`/u/${token}?id=${encodeURIComponent(id)}`} className="button-secondary text-center">Your private update link</Link></div><DemoNotice>Keep the update link. It is the only way to change this complaint's status; MERAWARD does not require accounts.</DemoNotice></div>
+  return <div className="mx-auto max-w-2xl space-y-4"><div className="app-card p-7 text-center"><span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-band-low-soft text-band-low"><Icon name="check" className="h-7 w-7" /></span><p className="section-kicker mt-4">Submitted</p><h1 className="mt-1 text-2xl font-black tracking-tight text-ink">Your complaint is on the record.</h1><p className="mt-2 font-mono text-xs text-ink-3">{id}</p></div>{drafting ? <div className="app-card p-5" aria-live="polite"><div className="flex items-center gap-2"><Spinner className="text-brand" /><p className="text-sm font-bold text-ink">Preparing the formal bilingual letter…</p></div><p className="mt-1 text-sm text-ink-2">The complaint is already saved. This normally takes a few seconds.</p><div className="mt-4 space-y-2"><Skeleton className="h-4 w-4/5" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-3/5" /></div></div> : complaint.data ? <BilingualDraft subject={complaint.data.subject} en={complaint.data.body_en} hi={complaint.data.body_hi} /> : null}<div className="grid gap-2 sm:grid-cols-2"><Link to={`/c/${id}`} className="button-primary text-center">Track this complaint</Link><Link to={`/u/${token}?id=${encodeURIComponent(id)}`} className="button-secondary text-center">Your private update link</Link></div><DemoNotice>Keep the update link. It is the only way to change this complaint's status; the optional guest profile only remembers it on this device.</DemoNotice></div>
 }
 
 export function BilingualDraft({ subject, en, hi }: { subject: string | null; en: string | null; hi: string | null }) {

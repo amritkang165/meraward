@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
 import { Icon, type IconName } from '../components/Icon'
+import { Skeleton } from '../components/states'
 
 const METHODS: Array<{
   mode: 'voice' | 'photo' | 'write'
@@ -101,9 +102,9 @@ export default function Home() {
           </form>
         </div>
         <div className="app-card grid grid-cols-3 divide-x divide-line overflow-hidden p-2">
-          <Stat value={complaints.isPending ? '—' : rows.length} label="Reports" />
-          <Stat value={complaints.isPending ? '—' : active} label="Active" />
-          <Stat value={complaints.isPending ? '—' : resolved} label="Resolved" />
+          <Stat value={rows.length} label="Reports" loading={complaints.isPending} />
+          <Stat value={active} label="Active" loading={complaints.isPending} />
+          <Stat value={resolved} label="Resolved" loading={complaints.isPending} />
         </div>
       </section>
 
@@ -121,6 +122,6 @@ export default function Home() {
   )
 }
 
-function Stat({ value, label }: { value: number | string; label: string }) {
-  return <div className="flex min-h-28 flex-col items-center justify-center px-2 text-center"><strong className="text-2xl font-black tabular-nums text-ink">{value}</strong><span className="mt-1 text-xs font-semibold text-ink-3">{label}</span></div>
+function Stat({ value, label, loading }: { value: number; label: string; loading: boolean }) {
+  return <div className="flex min-h-28 flex-col items-center justify-center px-2 text-center">{loading ? <Skeleton className="h-8 w-12" /> : <strong className="text-2xl font-black tabular-nums text-ink">{value}</strong>}<span className="mt-1 text-xs font-semibold text-ink-3">{label}</span></div>
 }

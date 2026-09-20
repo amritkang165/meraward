@@ -1,8 +1,9 @@
 import { lazy, Suspense } from 'react'
 import { NavLink, Route, Routes } from 'react-router-dom'
 import Home from './routes/Home'
-import { LoadingCard } from './components/states'
+import { PageLoader } from './components/states'
 import { Icon } from './components/Icon'
+import { GuestIdentity } from './components/GuestIdentity'
 
 /**
  * Every route below the home page is split out.
@@ -66,6 +67,7 @@ export default function App() {
             <Icon name="location" className="h-4 w-4 text-brand" />
             <span><span className="block text-[9px] uppercase tracking-wide text-ink-3">Demo location</span>Delhi · Find ward</span>
           </NavLink>
+          <GuestIdentity />
           <NavLink to="/report" className="ml-auto inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-ink px-3.5 text-xs font-bold text-white sm:ml-0">
             Report <Icon name="arrow" className="h-3.5 w-3.5" />
           </NavLink>
@@ -73,7 +75,7 @@ export default function App() {
       </header>
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 sm:py-7">
-        <Suspense fallback={<LoadingCard />}>
+        <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/ward" element={<Ward />} />

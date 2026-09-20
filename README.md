@@ -5,8 +5,8 @@
 ### Know your ward. Route your complaint. See who's ignoring you.
 
 Civic accountability for Delhi's municipal wards — find the ward you're standing in,
-file a photo-backed complaint that drafts itself into a formal letter in Hindi **and**
-English, and see a public scoreboard of which wards are being ignored.
+report by voice, photo, or text, get a formal letter in Hindi **and** English, and see
+a public scoreboard of which wards are being ignored.
 
 [![tests](https://img.shields.io/badge/tests-254%20passing-15803d)](backend/tests)
 [![live](https://img.shields.io/badge/live-meraward-0e6e68)](https://main.d1s6q0cvldi6dz.amplifyapp.com)
@@ -60,9 +60,12 @@ knowing who to ask — which almost nobody does.
 
 1. **Which ward am I in?** — GPS or a dropped pin returns your ward, its zone, its
    councillor where we could source one, and its **Ward Neglect Index**.
-2. **One-tap report** — photo + issue type → a formal complaint drafted **in Hindi and
-   English**, routed to the correct ward office, tracked publicly. **No signup.**
-3. **Public accountability dashboard** — complaint heatmap across Delhi, plus wards
+2. **Low-friction report** — voice, photo, or text → a reviewed formal complaint drafted
+   **in Hindi and English**, routed to the correct ward office, tracked publicly.
+3. **Instant guest profile** — one click creates a device-local `user####` alias that
+   can be renamed and remembers recent reports. It is optional and is clearly not
+   presented as secure server authentication.
+4. **Public accountability dashboard** — complaint heatmap across Delhi, plus wards
    ranked by Neglect Index.
 
 ---

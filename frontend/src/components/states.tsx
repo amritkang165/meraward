@@ -22,6 +22,23 @@ export function LoadingCard({ label = 'Loading…' }: { label?: string }) {
   )
 }
 
+export function Spinner({ className = '' }: { className?: string }) {
+  return <span className={`spinner ${className}`} aria-hidden="true" />
+}
+
+export function PageLoader({ label = 'Loading this page…' }: { label?: string }) {
+  return (
+    <div className="page-loader" role="status" aria-live="polite">
+      <span className="page-loader__mark"><span className="brand-mark__road" /></span>
+      <Spinner className="h-7 w-7" />
+      <div>
+        <p className="text-sm font-extrabold text-ink">{label}</p>
+        <p className="mt-0.5 text-xs text-ink-3">Getting the latest civic data ready</p>
+      </div>
+    </div>
+  )
+}
+
 export function ErrorState({
   title,
   message,
