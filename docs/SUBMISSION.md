@@ -110,7 +110,7 @@ a number with four visible inputs anyone can check.
 
 ## Quality
 
-- **247 backend tests**, none requiring AWS credentials.
+- **254 backend tests**, none requiring AWS credentials.
 - **Lighthouse mobile, against the live deployment**: 100 / 100 / 100 / 100 on the home
   page, and 100 accessibility, best practices and SEO on every page.
 - Total AWS cost for the weekend: <!-- TODO: fill from Cost Explorer before submitting.

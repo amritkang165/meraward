@@ -104,6 +104,20 @@ def test_optional_fields_are_omitted_not_blank():
     assert not any(not p.strip() for p in d.body_hi.split("\n\n"))
 
 
+def test_text_only_report_preserves_citizen_words_without_claiming_a_photo():
+    description = "There is a deep pothole outside the school gate after the rain."
+    d = compose(
+        "POTHOLE",
+        "Sadar Bazar",
+        description=description,
+        has_photo=False,
+    )
+    assert description in d.body_en
+    assert description in d.body_hi
+    assert "with a photograph" not in d.body_en
+    assert "छायाचित्र एवं" not in d.body_hi
+
+
 # ---------------------------------------------------------------- ethics (PRD §12)
 
 def test_letter_never_threatens_or_accuses():

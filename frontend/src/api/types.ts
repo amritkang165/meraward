@@ -59,12 +59,15 @@ export interface PresignResponse {
 }
 
 export interface CreateComplaintRequest {
-  photo_key: string
+  photo_key?: string
   issue_type: IssueType
   lat: number
   lng: number
   reporter_email?: string
   landmark?: string
+  description?: string
+  input_mode?: 'voice' | 'photo' | 'write'
+  preferred_language?: 'en' | 'hi'
 }
 
 export interface CreateComplaintResponse {
@@ -96,6 +99,9 @@ export interface Complaint {
   lat: number
   lng: number
   landmark: string | null
+  description?: string | null
+  input_mode?: 'voice' | 'photo' | 'write' | null
+  preferred_language?: 'en' | 'hi' | null
   subject: string | null
   body_en: string | null
   body_hi: string | null

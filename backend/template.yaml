@@ -8,7 +8,7 @@ Description: >
   What changed from that version:
     * every function points at backend/src with a dotted handler, so `common/`
       is importable from all of them
-    * routes corrected to the API contract in PRD §8 and the 247 tests
+    * routes corrected to the API contract in PRD §8 and the 254 tests
     * complaints_query and status_update added (they were missing entirely)
     * environment variable names matched to common/config.py
     * CORS added to the photos bucket, without which the browser PUT fails
@@ -29,7 +29,7 @@ Parameters:
 Globals:
   Function:
     # 3.13 on purpose: it is a supported Lambda runtime, shapely publishes a
-    # cp313 manylinux wheel, and it is the interpreter the 247 tests actually
+    # cp313 manylinux wheel, and it is the interpreter the test suite targets
     # run against. The stack previously deployed 3.14, which nothing was tested
     # on.
     Runtime: python3.13

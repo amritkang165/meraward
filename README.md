@@ -8,7 +8,7 @@ Civic accountability for Delhi's municipal wards — find the ward you're standi
 file a photo-backed complaint that drafts itself into a formal letter in Hindi **and**
 English, and see a public scoreboard of which wards are being ignored.
 
-[![tests](https://img.shields.io/badge/tests-247%20passing-15803d)](backend/tests)
+[![tests](https://img.shields.io/badge/tests-254%20passing-15803d)](backend/tests)
 [![live](https://img.shields.io/badge/live-meraward-0e6e68)](https://main.d1s6q0cvldi6dz.amplifyapp.com)
 [![lighthouse](https://img.shields.io/badge/lighthouse-100%20%2F%20100%20%2F%20100%20%2F%20100-15803d)](#performance)
 [![python](https://img.shields.io/badge/python-3.13-3776ab)](backend/)
@@ -154,7 +154,7 @@ cannot both win.
 ## Repository layout
 
 ```
-backend/     Python 3.13 Lambdas + AWS SAM      247 tests, no AWS needed to run them
+backend/     Python 3.13 Lambdas + AWS SAM      254 tests, no AWS needed to run them
   src/common/    shared: geometry, index, store, validation, drafting, delivery
   src/<fn>/      one package per Lambda — handler path is <fn>.app.handler
 frontend/    React 18 + Vite + TS + Tailwind + MapLibre, as a PWA
@@ -168,7 +168,7 @@ docs/        architecture, decisions log, deployment runbook, submission writeup
 
 ```bash
 python -m pip install -r backend/requirements-dev.txt
-python -m pytest backend -q          # 247 tests, no AWS credentials needed
+python -m pytest backend -q          # 254 tests, no AWS credentials needed
 ```
 
 `WARDS_GEOJSON_PATH` points the ward index at a local GeoJSON file instead of S3 —
@@ -202,7 +202,7 @@ Environment variables are documented in [`.env.example`](.env.example) and
 | **API** | `https://9f41c4bkel.execute-api.ap-south-1.amazonaws.com` |
 | Demo video | _pending_ |
 | Region | `ap-south-1` (Mumbai) |
-| Backend | ✅ deployed — 247 tests passing |
+| Backend | ✅ deployed — 254 tests passing locally |
 | Frontend | ✅ deployed on Amplify + CloudFront |
 | Ward data | ✅ 289 real polygons live in S3 |
 | Demo data | ✅ 240 seeded complaints across 86 wards |
