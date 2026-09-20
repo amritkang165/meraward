@@ -1,3 +1,5 @@
+![MeraWard banner](meraward-banner-animated.svg)
+
 <div align="center">
 
 # MERAWARD
