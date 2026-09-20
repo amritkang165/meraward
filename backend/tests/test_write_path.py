@@ -253,7 +253,7 @@ def test_inline_draft_write_failure_degrades_to_pending(created, monkeypatch):
 @pytest.mark.parametrize(
     "over,code",
     [
-        ({"photo_key": ""}, "missing_photo_key"),
+        ({"photo_key": ""}, "empty_complaint"),  # no photo AND no description
         ({"photo_key": "../../etc/passwd"}, "invalid_photo_key"),
         ({"photo_key": "photos/2026/09/19/evil.jpg"}, "invalid_photo_key"),
         ({"photo_key": "other-prefix/2026/09/19/01K5ABCDEFGHJKMNPQRSTVWXYZ.jpg"}, "invalid_photo_key"),
@@ -364,3 +364,89 @@ def test_health_leaks_no_infrastructure_details(wards_file, monkeypatch):
     raw = health_app.handler({})["body"]
     assert "secret-q" not in raw
     assert "123456789" not in raw
+
+
+# ==========================================================================
+# Three ways in: photo, description, or both
+# ==========================================================================
+
+
+def test_a_description_only_complaint_is_accepted(created):
+    """Spoken and written reports have no photograph.
+
+    Requiring one would make two of the three reporting routes impossible.
+    """
+    res = create_app.handler(
+        _event({
+            "issue_type": "GARBAGE",
+            "lat": 28.05,
+            "lng": 77.05,
+            "description": "The bins outside the school have not been emptied for nine days.",
+        })
+    )
+    assert res["statusCode"] == 202
+    item = created["items"][0]
+    assert "photo_key" not in item, "no photo was sent, so none should be stored"
+    assert item["description"].startswith("The bins outside the school")
+
+
+def test_a_complaint_with_neither_photo_nor_description_is_rejected(created):
+    """Evidence or words. Neither is not a report."""
+    res = create_app.handler(_event({"issue_type": "OTHER", "lat": 28.05, "lng": 77.05}))
+    assert res["statusCode"] == 400
+    assert _body(res)["error"]["code"] == "empty_complaint"
+    assert created["items"] == []
+
+
+def test_photo_and_description_together_are_both_kept(created):
+    res = create_app.handler(
+        _event(_valid_complaint(description="Deep pothole right at the crossing."))
+    )
+    assert res["statusCode"] == 202
+    item = created["items"][0]
+    assert item["photo_key"] == VALID_KEY
+    assert item["description"] == "Deep pothole right at the crossing."
+
+
+def test_an_overlong_description_is_rejected(created):
+    res = create_app.handler(_event(_valid_complaint(description="x" * 2500)))
+    assert res["statusCode"] == 400
+    assert _body(res)["error"]["code"] == "text_too_long"
+
+
+def test_the_letter_quotes_the_reporters_own_words(created, monkeypatch):
+    """Their testimony is the part of the letter that is actually theirs."""
+    class _Broken:
+        def send_message(self, **_):
+            raise RuntimeError("sqs down")
+
+    monkeypatch.setattr(create_app, "sqs_client", lambda: _Broken())
+    said = "Water has been standing outside the clinic since Tuesday."
+    create_app.handler(_event(_valid_complaint(description=said)))
+
+    _, draft = created["updates"][0]
+    assert said in draft["body_en"]
+    assert said in draft["body_hi"], (
+        "the description is quoted verbatim in both languages - inventing a "
+        "translation of someone's own testimony would put words in their mouth"
+    )
+
+
+def test_the_letter_only_claims_a_photograph_when_there_is_one(created, monkeypatch):
+    class _Broken:
+        def send_message(self, **_):
+            raise RuntimeError("sqs down")
+
+    monkeypatch.setattr(create_app, "sqs_client", lambda: _Broken())
+
+    create_app.handler(_event({
+        "issue_type": "WATER", "lat": 28.05, "lng": 77.05,
+        "description": "Drain blocked.",
+    }))
+    _, no_photo = created["updates"][0]
+    assert "photograph" not in no_photo["body_en"]
+
+    created["updates"].clear()
+    create_app.handler(_event(_valid_complaint()))
+    _, with_photo = created["updates"][0]
+    assert "photograph" in with_photo["body_en"]

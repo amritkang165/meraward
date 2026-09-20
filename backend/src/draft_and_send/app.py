@@ -55,6 +55,8 @@ def _draft_for(complaint: dict[str, Any]) -> Draft:
     reference = complaint.get("complaint_id")
     landmark = complaint.get("landmark")
     reported_on = complaint.get("created_at")
+    description = complaint.get("description")
+    has_photo = bool(complaint.get("photo_key"))
 
     try:
         return draft_with_bedrock(
@@ -64,6 +66,7 @@ def _draft_for(complaint: dict[str, Any]) -> Draft:
             reported_on=reported_on,
             landmark=landmark,
             reference=reference,
+            description=description,
         )
     except BedrockUnavailable as exc:
         log.info("drafting with the template composer instead (%s)", exc)
@@ -77,6 +80,8 @@ def _draft_for(complaint: dict[str, Any]) -> Draft:
         ward_id=ward_id,
         reference=reference,
         landmark=landmark,
+        description=description,
+        has_photo=has_photo,
     )
 
 

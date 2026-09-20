@@ -31,6 +31,8 @@ from common.responses import ApiError, accepted, server_error
 from common.store import put_complaint, update_complaint_draft
 from common.validation import (
     require_coords,
+    require_evidence,
+    validate_description,
     validate_email,
     validate_photo_key,
     validate_text,
@@ -85,7 +87,13 @@ def handler(event: dict[str, Any], context: Any = None) -> dict[str, Any]:
     try:
         body = _parse_body(event)
 
-        photo_key = validate_photo_key(body.get("photo_key"))
+        # Photo and description are each optional so that a spoken, written or
+        # photographed report can all take the route that suits it — but a
+        # complaint carrying neither is not a report, and require_evidence says so.
+        photo_key = validate_photo_key(body.get("photo_key"), required=False)
+        description = validate_description(body.get("description"))
+        require_evidence(photo_key, description)
+
         issue_type = normalise_issue_type(body.get("issue_type"))
         lat, lng = require_coords(body)
         reporter_email = validate_email(body.get("reporter_email"))
@@ -114,13 +122,16 @@ def handler(event: dict[str, Any], context: Any = None) -> dict[str, Any]:
             "issue_type": issue_type,
             "lat": Decimal(str(lat)),
             "lng": Decimal(str(lng)),
-            "photo_key": photo_key,
             # Real citizen reports are never demo rows. The seed script sets this
             # true; nothing else ever does.
             "is_demo": False,
             "delivery_mode": cfg.delivery_mode,
             "status_token": status_token,
         }
+        if photo_key:
+            item["photo_key"] = photo_key
+        if description:
+            item["description"] = description
         if reporter_email:
             item["reporter_email"] = reporter_email
         if landmark:
@@ -132,7 +143,7 @@ def handler(event: dict[str, Any], context: Any = None) -> dict[str, Any]:
 
         queued = _enqueue(complaint_id)
         if not queued:
-            _draft_inline(item, ward.ward_name, now, complaint_id, landmark, issue_type)
+            _draft_inline(item, now)
 
         return accepted(
             {
@@ -157,28 +168,27 @@ def handler(event: dict[str, Any], context: Any = None) -> dict[str, Any]:
         return server_error()
 
 
-def _draft_inline(
-    item: dict[str, Any],
-    ward_name: str,
-    now: datetime,
-    complaint_id: str,
-    landmark: str | None,
-    issue_type: str,
-) -> None:
+def _draft_inline(item: dict[str, Any], now: datetime) -> None:
     """Compose the letter here and now, because the queue is unavailable.
 
     The composer is pure Python and runs in microseconds, so this costs the
     request nothing measurable and the user still gets a complete complaint
     instead of one stuck on PENDING forever. Mutates ``item`` so the response
     reports the real state.
+
+    Everything it needs is already on ``item``, so it reads from there rather
+    than taking a parameter per field.
     """
+    complaint_id = item["complaint_id"]
     draft = compose(
-        issue_type,
-        ward_name,
+        item["issue_type"],
+        item.get("ward_name") or "",
         reported_on=now,
         ward_id=item["ward_id"],
         reference=complaint_id,
-        landmark=landmark,
+        landmark=item.get("landmark"),
+        description=item.get("description"),
+        has_photo=bool(item.get("photo_key")),
     )
     item.update(
         subject=draft.subject,

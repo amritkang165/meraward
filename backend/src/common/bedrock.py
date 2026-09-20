@@ -65,6 +65,7 @@ def _user_prompt(
     reported_on: str | None,
     landmark: str | None,
     reference: str | None,
+    description: str | None,
 ) -> str:
     lines = [
         f"Issue type: {issue_type}",
@@ -76,10 +77,14 @@ def _user_prompt(
         lines.append(f"Nearest landmark: {landmark}")
     if reference:
         lines.append(f"Reference number: {reference}")
-    lines.append(
-        "\nA photograph and location coordinates accompany this report. "
-        "Write the complaint."
-    )
+    if description:
+        lines.append(
+            "\nThe reporter described the problem in their own words:\n"
+            f'"""\n{description}\n"""\n'
+            "Ground the letter in what they actually said. Quote or closely "
+            "paraphrase it, and do not add details they did not give you."
+        )
+    lines.append("\nWrite the complaint.")
     return "\n".join(lines)
 
 
@@ -143,6 +148,7 @@ def draft_with_bedrock(
     reported_on: str | None = None,
     landmark: str | None = None,
     reference: str | None = None,
+    description: str | None = None,
 ) -> Draft:
     """Draft a complaint with Bedrock.
 
@@ -161,6 +167,7 @@ def draft_with_bedrock(
         reported_on=reported_on,
         landmark=landmark,
         reference=reference,
+        description=description,
     )
 
     try:

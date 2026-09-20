@@ -47,6 +47,9 @@ PUBLIC_COMPLAINT_FIELDS: Final[tuple[str, ...]] = (
     "lat",
     "lng",
     "landmark",
+    # The reporter's own account. Public on purpose: it is the substance of the
+    # complaint, and the detail page is meant to be shareable.
+    "description",
     "subject",
     "body_en",
     "body_hi",

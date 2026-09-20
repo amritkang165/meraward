@@ -283,6 +283,8 @@ def compose(
     ward_id: str | None = None,
     reference: str | None = None,
     landmark: str | None = None,
+    description: str | None = None,
+    has_photo: bool = False,
 ) -> Draft:
     """Compose a formal bilingual complaint.
 
@@ -293,12 +295,21 @@ def compose(
         ward_id: Ward identifier, e.g. ``DEL-0042``. Rendered only if present.
         reference: Complaint id, rendered as a reference number if present.
         landmark: Optional free-text locality hint from the reporter.
+        description: The reporter's own account, spoken or typed. Quoted
+            verbatim, never paraphrased and never machine-translated here — see
+            below.
 
     Returns:
         A frozen :class:`Draft` with ``source="template"``.
 
     The letter never names an individual and never threatens action. It is
     addressed to the ward office as an institution.
+
+    **The description is quoted, not translated.** If a citizen writes in
+    English, their words appear in English inside the Hindi letter too, under a
+    Hindi label. Inventing a translation of someone's own testimony would be
+    putting words in their mouth; quoting them is the honest option until a real
+    translation service is wired in.
     """
     copy = _COPY[normalise_issue_type(issue_type)]
     when = _coerce_date(reported_on)
@@ -323,6 +334,25 @@ def compose(
     reference_en = f" The reference number for this report is {reference}." if reference else ""
     reference_hi = f" इस शिकायत की संदर्भ संख्या {reference} है।" if reference else ""
 
+    # The reporter's own testimony, quoted rather than paraphrased. Their words
+    # are the part of this letter that is actually theirs.
+    said = (description or "").strip()
+    description_en = f'In the reporter\'s own words: "{said}"' if said else ""
+    description_hi = f'शिकायतकर्ता के अपने शब्दों में: "{said}"' if said else ""
+
+    # Only claim a photograph when one was actually attached. A voice or written
+    # report has none, and neither does seeded demonstration data.
+    evidence_en = (
+        "with a photograph and the location coordinates"
+        if has_photo
+        else "with the location coordinates"
+    )
+    evidence_hi = (
+        "छायाचित्र एवं स्थान-निर्देशांक अभिलिखित हैं"
+        if has_photo
+        else "स्थान-निर्देशांक अभिलिखित हैं"
+    )
+
     body_en = "\n\n".join(
         part
         for part in [
@@ -332,10 +362,11 @@ def compose(
             f"Subject: {subject}",
             "Sir/Madam,",
             f"I am a resident of {ward}. {copy.problem_en}",
+            description_en,
             landmark_en,
             f"This complaint was filed on {_fmt_date(when, _MONTHS_EN)} through "
             f"{_PLATFORM}, a public civic-reporting platform, and has been recorded "
-            f"with a photograph and the location coordinates.{reference_en}",
+            f"{evidence_en}.{reference_en}",
             f"{copy.request_en} I would be grateful to be informed of the action "
             "taken and of an expected timeline.",
             "Thank you for your attention to this matter.",
@@ -353,10 +384,11 @@ def compose(
             f"विषय: {subject_hi}",
             "महोदय/महोदया,",
             f"मैं {ward} का निवासी हूँ। {copy.problem_hi}",
+            description_hi,
             landmark_hi,
             f"यह शिकायत दिनांक {_fmt_date(when, _MONTHS_HI)} को {_PLATFORM} नामक "
             "सार्वजनिक नागरिक-शिकायत मंच के माध्यम से दर्ज की गई है, तथा इसके साथ "
-            f"छायाचित्र एवं स्थान-निर्देशांक अभिलिखित हैं।{reference_hi}",
+            f"{evidence_hi}।{reference_hi}",
             f"{copy.request_hi} कृपया की गई कार्रवाई तथा संभावित समय-सीमा से अवगत "
             "कराने का कष्ट करें।",
             "सधन्यवाद।",

@@ -15,14 +15,21 @@ from .responses import ApiError
 
 __all__ = [
     "ALLOWED_PHOTO_TYPES",
+    "MAX_DESCRIPTION_CHARS",
     "PHOTO_KEY_PATTERN",
     "extension_for",
     "require_coords",
+    "require_evidence",
     "validate_content_type",
+    "validate_description",
     "validate_email",
     "validate_photo_key",
     "validate_text",
 ]
+
+#: Long enough for a rambling voice transcript, short enough that an
+#: unauthenticated endpoint cannot be used to store arbitrary text.
+MAX_DESCRIPTION_CHARS: Final[int] = 2000
 
 #: What a phone camera actually produces. HEIC is included because iOS defaults
 #: to it and rejecting it would silently break reporting on half of all phones.
@@ -63,18 +70,51 @@ def extension_for(content_type: str) -> str:
     return ALLOWED_PHOTO_TYPES[content_type]
 
 
-def validate_photo_key(raw: Any) -> str:
+def validate_photo_key(raw: Any, *, required: bool = True) -> str | None:
     """Accept only keys matching the shape we issue.
 
     Without this, an unauthenticated caller could attach an arbitrary object in
     the bucket to a complaint, or point a complaint at a key that does not exist.
+
+    ``required=False`` is used by ``create_complaint``: a spoken or written
+    complaint has no photograph, and refusing it would make two of the three
+    reporting routes impossible. What a complaint cannot be is *empty* — see
+    :func:`require_evidence`.
     """
     value = str(raw or "").strip()
     if not value:
-        raise ApiError(400, "missing_photo_key", "photo_key is required.")
+        if required:
+            raise ApiError(400, "missing_photo_key", "photo_key is required.")
+        return None
     if not PHOTO_KEY_PATTERN.match(value):
         raise ApiError(400, "invalid_photo_key", "photo_key is not a key we issued.")
     return value
+
+
+def validate_description(raw: Any) -> str | None:
+    """The citizen's own account of the problem, in their own words.
+
+    Optional, but it is the only place their actual words survive — the letter
+    is generated around it. Capped at :data:`MAX_DESCRIPTION_CHARS`, which is
+    long enough for a rambling voice transcript and short enough that nobody can
+    post a novel to an unauthenticated endpoint.
+    """
+    return validate_text(raw, "description", max_length=MAX_DESCRIPTION_CHARS)
+
+
+def require_evidence(photo_key: str | None, description: str | None) -> None:
+    """A complaint must carry either a photograph or a description.
+
+    Both are individually optional so that voice, photo and written reports can
+    each take the route that suits them. Neither one being present is not a
+    report at all, and a ward office receiving it could do nothing with it.
+    """
+    if not photo_key and not description:
+        raise ApiError(
+            400,
+            "empty_complaint",
+            "Add a photo or describe the problem — a complaint needs at least one.",
+        )
 
 
 def validate_email(raw: Any) -> str | None:
