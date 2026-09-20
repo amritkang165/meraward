@@ -38,7 +38,7 @@ Severity is about **impact on a user or a reviewer**, not effort to fix.
 
 | # | Issue | Severity | Why it stands |
 |---|---|:---:|---|
-| 14 | **SES stays in sandbox**, so email reaches verified identities only. | Low | This is the design, not a limitation we are working around. We do not send to real officials — see [`README.md`](README.md#data--demo-mode-disclaimer). |
+| 14 | **SES stays in sandbox**, so email reaches verified identities only. | Low | The default is a demo outbox with no email. Real officials are not contacted; see [deployment and scope](README.md#deployment-and-scope). |
 | 15 | ~~`shapely` unverified on a deployed Lambda~~ | ✅ **resolved** | Deployed and confirmed. `GET /health` on the live API returns `ward_index: {loaded: true, wards: 289}`, and a live `/wards/lookup` resolves Connaught Place to NDMC. shapely 2.1.2 packages as `cp313-cp313-manylinux_2_17_x86_64`. |
 | 16 | Photos bucket had no CORS configuration. | ✅ **resolved** | Added to the SAM template and deployed; a real signed browser `PUT` to S3 returns 200. |
 | 17 | API/S3 CORS is constrained consistently in the maintenance template; deployed change not yet verified. | Medium | One `AllowedOrigin` parameter drives API Gateway, Lambda responses and photo PUTs, with a non-wildcard default. Review/deploy separately; CORS is not authentication. |
