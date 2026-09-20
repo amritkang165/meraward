@@ -100,6 +100,13 @@ non-loopback URLs/non-sandbox health before writing. It exercises actual HTTP
 upload/draft/read/status behavior. The separate local-configuration regression
 proves inherited profiles and per-service cloud endpoints are replaced.
 
+The local HTTP listener handles connections in separate threads with bounded
+socket waits. A browser's idle preconnected socket must not monopolize the WSGI
+accept loop or block health/other requests. A regression holds one socket open
+without sending HTTP and verifies a second health request still completes.
+Actual handler/worker SDK operations remain serialized, preserving resource
+safety; the production Lambda path is unchanged by this listener fix.
+
 SAM packaging was also verified in a Linux build container on Windows using
 the already-installed Python 3.13 builder (`sam build --use-container
 --skip-pull-image`). The initial builder-refresh attempt was interrupted while

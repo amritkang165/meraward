@@ -17,8 +17,9 @@ from pathlib import Path
 import re
 import sys
 import threading
+from socketserver import ThreadingMixIn
 from urllib.parse import parse_qs
-from wsgiref.simple_server import WSGIRequestHandler, make_server
+from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, make_server
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "backend/src"))
@@ -187,9 +188,20 @@ def process_queue(stop: threading.Event) -> None:
 
 
 class QuietRequests(WSGIRequestHandler):
+    def setup(self):
+        super().setup()
+        self.connection.settimeout(10)
+
     def log_message(self, *_):
         # Paths can contain capability tokens. Do not write them to stdout.
         pass
+
+
+class LocalHTTPServer(ThreadingMixIn, WSGIServer):
+    # Browsers can pre-open a TCP socket before sending a request. A single
+    # WSGI connection would monopolize the accept loop, including health checks.
+    # Handler/worker SDK operations remain serialized by LOCK above.
+    daemon_threads = True
 
 
 def main() -> None:
@@ -213,7 +225,7 @@ def main() -> None:
         bootstrap()
         worker = threading.Thread(target=process_queue, args=(stop,), daemon=True)
         worker.start()
-        with make_server(args.host,args.port,application,handler_class=QuietRequests) as server:
+        with make_server(args.host,args.port,application,server_class=LocalHTTPServer,handler_class=QuietRequests) as server:
             print(f"Local API: http://localhost:{args.port}; frontend origin: {args.origin}",flush=True)
             print("Synthetic records; temporary in-memory storage; template drafts; no email or AWS calls.",flush=True)
             server.serve_forever()
