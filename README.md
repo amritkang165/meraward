@@ -166,7 +166,7 @@ Built by **Sleepy peeps (`4T5AKB`)** for **First Commit · Bharat Builds Tour** 
 | [Kartik Dixit](https://github.com/Kartikdixit2468) | AWS infrastructure, original deployment work and complaint-intake improvements |
 | [Muneer Alam](https://github.com/Muneer320) | Backend handlers, geospatial lookup, index, SAM integration and verification |
 
-The SAM and deployment work spans Kartik and Muneer; it is not claimed as a solo project. Original event documentation discloses Claude/Claude Code assistance; Bedrock is an optional runtime integration, not a claim that every letter used a model.
+The SAM and deployment work spans Kartik and Muneer; it is not claimed as a solo project. Bedrock is an optional runtime integration, not a claim that every letter used a model.
 
 Report reproducible problems in [Issues](https://github.com/amritkang165/meraward/issues), using synthetic inputs and no private update links. Changes go through pull requests to this team repository. Preserve the public-field boundary and add regression coverage for write, token or index changes.
 
