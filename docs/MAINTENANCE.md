@@ -99,3 +99,10 @@ for every ward office.
 non-loopback URLs/non-sandbox health before writing. It exercises actual HTTP
 upload/draft/read/status behavior. The separate local-configuration regression
 proves inherited profiles and per-service cloud endpoints are replaced.
+
+SAM packaging was also verified in a Linux build container on Windows using
+the already-installed Python 3.13 builder (`sam build --use-container
+--skip-pull-image`). The initial builder-refresh attempt was interrupted while
+waiting; the cached-image build completed. This verifies packaging, not a shared
+stack deployment. Keep its artifacts ignored and do not reuse a stale builder
+as a substitute for reviewing the eventual deployment environment.

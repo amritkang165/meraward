@@ -86,3 +86,4 @@ to guess the crosswalk. We have not guessed either.
 
 - `shapely` — BSD 3-Clause
 - `MapLibre GL JS` — BSD 3-Clause
+- `Moto` — Apache-2.0; isolated local AWS-service emulation only, not a production dependency
