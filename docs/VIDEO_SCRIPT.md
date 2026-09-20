@@ -2,165 +2,221 @@
 
 **3:00 hard limit · YouTube, public or unlisted · captions on · AWS visible on screen**
 
-Live: https://main.d1s6q0cvldi6dz.amplifyapp.com
-API: `https://9f41c4bkel.execute-api.ap-south-1.amazonaws.com`
+- **Live:** https://main.d1s6q0cvldi6dz.amplifyapp.com
+- **API:** `https://9f41c4bkel.execute-api.ap-south-1.amazonaws.com`
+- **Repo:** https://github.com/amritkang165/meraward
 
-Narration is written to be **spoken, not read** — roughly 430 words, which lands near
-2:50 at a natural pace. Record on a real Android phone for the app shots; screen-record
-the console shots on a laptop.
-
-> **Accuracy rules for this video.** Everything below is true as of recording. Do not
-> add claims. In particular: **do not say Bedrock, Transcribe, Translate or Rekognition
-> are running.** `/health` is public and returns `"drafting": {"mode": "template"}` —
-> a judge can check it in ten seconds. The honest version of our AI story is stronger
-> anyway, and it is scripted below.
->
-> **Never show a named councillor beside a bad Neglect Index.** Use a ward with no
-> councillor, or stay on the gauge.
+Everything in quote marks is **word-for-word narration**. Read it as written; it is
+timed. Total **454 words** — about **2:56** spoken at a natural pace, inside the 3:00 limit.
+Section word counts are in the headings. If you run long, drop §2:36 (66 words) and you
+land near 2:30.
 
 ---
 
-## 0:00 – 0:18 · The hook
+## How to use the tags
 
-**On screen:** a real Delhi pothole photo, or a civic complaint tweet with no replies.
-Then hard cut to the MERAWARD home screen on a phone.
+Parts of the product are finished and parts are not. Every shot is tagged:
 
-> "Delhi has hundreds of municipal wards. Every one has an elected councillor whose job
-> is potholes, streetlights, garbage and drains.
-> Almost nobody knows which ward they live in — so complaints go nowhere, and the same
+| Tag | What it means |
+|---|---|
+| 🎥 **FILM LIVE** | It genuinely works. Perform the interaction on camera. |
+| 🖼 **SHOW ONLY** | Put the real screen on camera and talk over it. **Do not click through, do not mime a result, do not cut in a way that implies something happened.** |
+
+The narration for 🖼 shots is written to *describe the screen*, never to claim an
+outcome. Keep it that way if you change anything — describing an interface is honest;
+implying it just did something is not.
+
+### Two hard rules for this recording
+
+1. **Never say** Bedrock, Transcribe, Translate or Rekognition are running. `/health`
+   is a public endpoint and returns `"drafting": {"mode": "template"}`. A judge can
+   check it in ten seconds. The honest version is scripted below and is a better story.
+2. **Never show a named councillor beside a bad Neglect Index.** Pick a ward that has
+   none, or stay on the gauge.
+
+### Pre-flight — run this an hour before recording
+
+Anything that fails becomes 🖼 **SHOW ONLY**. Adjust the tags, not the truth.
+
+- [ ] `/ward` — drop a pin, ward card appears with the gauge
+- [ ] `/dashboard` — heatmap, filters, leaderboard
+- [ ] `/c/:id` — a complaint opens with both letters
+- [ ] `/about` — loads
+- [ ] Report → Write → submit → complaint ID appears
+- [ ] Report → Photo → upload → submit
+- [ ] Report → Voice → transcript *(known broken — expect 🖼)*
+- [ ] Review screen — editing the text before submit
+
+---
+
+# THE SCRIPT
+
+## 0:00 – 0:17 · Hook · *43 words*
+
+🖼 **SHOW ONLY.** A real Delhi pothole, or a civic complaint tweet with no replies.
+Hold three seconds. Then cut to the MERAWARD home screen on a phone.
+
+> "Delhi has hundreds of municipal wards. Every one of them has an elected councillor
+> whose job is exactly this — potholes, streetlights, garbage, drains.
+>
+> Almost nobody knows which ward they live in. So complaints go nowhere, and the same
 > pothole survives three monsoons."
 
 ---
 
-## 0:18 – 0:35 · About the project
+## 0:17 – 0:38 · About the project · *54 words*
 
-**On screen:** the home screen's three entry cards — Speak, Photo, Write.
+🖼 **SHOW ONLY.** The home screen. Scroll slowly so all three entry cards are seen —
+Speak, Photo, Write. **Do not tap any of them.**
 
-> "MERAWARD closes that gap. Tell it what's wrong — speak it, photograph it, or type it
-> — and it works out your ward, writes a formal complaint in Hindi and English, and
-> tracks it in public. No signup, no login, no account."
+> "MERAWARD is built on one idea: reporting a civic problem should feel like telling
+> someone, not filling in a form.
+>
+> Three ways in — speak it, photograph it, type it — all arriving at the same place:
+> your ward identified, a formal complaint in Hindi and English, and a public record
+> anyone can follow."
 
----
-
-## 0:35 – 1:15 · The loop *(the most important 40 seconds)*
-
-**On screen, one unbroken take on the phone:**
-1. Tap **Speak**, say out loud: *"Yahan teen din se paani jama hai, bachche nikal nahi paate."*
-2. The transcript appears. Tap through.
-3. The map resolves the pin → the ward card appears.
-4. The **review screen** — edit a word of the description to show it is editable.
-5. Submit → complaint ID appears.
-6. Tap the **हिन्दी** tab on the letter.
-
-> "I speak the problem in Hindi. The pin drops, and a point-in-polygon lookup against
-> two hundred and eighty-nine real ward boundaries tells me exactly which ward I'm in.
-> Before anything is sent, I see the complaint — and I can edit it. The AI never files
-> anything silently.
-> One tap, and it's filed, in both languages, addressed to the right ward office."
 
 ---
 
-## 1:15 – 1:40 · The accountability half
+## 0:38 – 1:10 · Find your ward · *58 words* · **the strongest live moment**
 
-**On screen:** the dashboard — heatmap, then the leaderboard scrolling.
+🎥 **FILM LIVE**, one unbroken take on the phone:
+1. Open `/ward`
+2. Drag the pin — or tap **Use my location**
+3. Let the ward card rise: ward name, zone, the banded gauge, the four numbers beneath
 
-> "Every report is public. Each ward gets a Neglect Index: how many reports are still
-> open, how long they've waited, and how slow past fixes were.
-> And a ward nobody reports scores *nothing* — not zero. Otherwise the wards being
-> ignored would look like the best-run wards in the city."
-
----
-
-## 1:40 – 2:25 · Tech stack, architecture, and AWS **on screen**
-
-**On screen:** `docs/architecture.svg` for 4 seconds, then **real AWS console footage** —
-the Lambda list, the SQS queue, a CloudWatch log line, the DynamoDB table.
-
-> "React and MapLibre on Amplify Hosting with CloudFront. Behind it, API Gateway into
-> eight Python Lambdas, DynamoDB for state, S3 for photos and boundaries.
-> SQS sits between the API and the drafting worker, so the API answers in about two
-> milliseconds and you never wait on the slow part. EventBridge recomputes every ward's
-> index hourly, and CloudWatch watches all of it.
-> The point-in-polygon runs *inside* the Lambda — an R-tree over the ward polygons,
-> about a fiftieth of a millisecond. We priced a managed search cluster at roughly
-> eleven dollars a day and decided two hundred and eighty-nine polygons didn't need one."
+> "This is the part that doesn't exist anywhere else. I drop a pin, and a
+> point-in-polygon lookup against two hundred and eighty-nine real Delhi ward boundaries
+> tells me exactly which ward I'm standing in — in about a fiftieth of a millisecond.
+>
+> And the ward doesn't come back with just a name. It comes back with a number."
 
 ---
 
-## 2:25 – 2:50 · The decisions we'd defend
+## 1:10 – 1:36 · The accountability half · *49 words*
 
-**On screen:** the `/about` page, scrolling slowly.
+🎥 **FILM LIVE** — `/dashboard`. Toggle heatmap to points. Change one filter. Scroll the
+leaderboard a little.
 
-> "Three things we chose on purpose.
-> The letter is generated by a deterministic composer, so it works whether or not a
-> model is available — the Bedrock path is wired and falls back to it. The product is
-> never hostage to an LLM.
-> The index scores a **ward**, never a person.
-> And we don't email real officials. The complaint is drafted and queued to a demo
-> inbox — a hackathon shouldn't put unsolicited mail in a public servant's inbox."
-
----
-
-## 2:50 – 3:00 · Learning, and close
-
-**On screen:** end card — live URL, repo, team names. Hold 5 seconds.
-
-> "What we learned: the current ward boundaries of a city of twenty million aren't
-> published as open data. We shipped the ones that are, and said so on the site.
-> MERAWARD. Live now."
+> "Every report is public, and every ward gets a Neglect Index: how many reports are
+> open, how long they've waited, how slow past fixes were.
+>
+> A ward nobody reports scores nothing. Not zero — score it zero, and the most ignored
+> wards look like the best-run in the city."
 
 ---
 
-# Shot list for the AWS console section
+## 1:36 – 1:58 · The complaint itself · *56 words*
 
-Record these before you start, so the narration can be laid over them:
+🎥 **FILM LIVE** — open an existing complaint at `/c/:id`. Tap the **हिन्दी** tab so the
+letter switches language on camera.
 
-| # | Shot | Where |
+> "Here's a filed complaint. A formal letter to the ward office in English — and the
+> same letter in Hindi. With the photo, the location, and a status timeline: reported,
+> acknowledged, resolved."
+
+🖼 **SHOW ONLY** — the review screen from the report flow. Hold it still, about three
+seconds. Do not type into it.
+
+> "And this screen is the reason the flow exists: before anything is filed, the citizen
+> sees exactly what will go out in their name."
+
+---
+
+## 1:58 – 2:36 · Tech stack, architecture, AWS on screen · *84 words*
+
+🖼 **SHOW ONLY** — `docs/architecture.svg` for four seconds, then cut to the **real AWS
+console footage** from the shot list below, changing shot roughly every six seconds.
+
+> "React and MapLibre on Amplify, behind CloudFront. API Gateway into eight Python
+> Lambdas, DynamoDB for state, S3 for photos and boundaries.
+>
+> SQS sits between the API and the drafting worker, so the API answers in two
+> milliseconds and nobody waits on the slow part. EventBridge recomputes the index
+> hourly, CloudWatch watches everything, and the whole stack is one SAM template.
+>
+> The point-in-polygon runs inside the Lambda. We priced a managed search cluster at
+> eleven dollars a day and decided we did not need one."
+
+---
+
+## 2:36 – 2:52 · What we would defend, and what is next · *66 words*
+
+🖼 **SHOW ONLY** — the `/about` page, scrolling steadily.
+
+> "Three calls we would defend. The letter comes from a deterministic composer, so it
+> works with or without a model — never hostage to an LLM. The index scores a ward,
+> never a person. And we do not email real officials: a hackathon shouldn't put
+> unsolicited mail in a public servant's inbox.
+>
+> Voice and translation are built into the interface. They are what we finish next."
+
+*That closing line is what earns the right to have shown the Speak card at 0:17.*
+
+---
+
+## 2:52 – 3:00 · Learning, and close · *44 words*
+
+🖼 **SHOW ONLY** — end card: live URL, repo, the three names. Hold five seconds.
+
+> "The thing we genuinely did not expect to learn: the current ward boundaries of a city
+> of twenty million people are not published as open data. So we shipped the ones that
+> are — and we said so, on the site.
+>
+> MERAWARD. It's live."
+
+---
+
+# AWS console shot list
+
+Record these **before** you start, then lay the 1:58 narration over them.
+
+| # | Shot | Where to get it |
 |---|---|---|
-| 1 | Lambda console — the eight functions | Lambda → Functions, filter `meraward` |
-| 2 | SQS queue with messages in flight, and the DLQ beside it | SQS → `meraward-infra-ComplaintQueue` |
+| 1 | The eight Lambda functions | Lambda → Functions, filter `meraward` |
+| 2 | The SQS queue and its dead-letter queue side by side | SQS → `meraward-infra-ComplaintQueue` |
 | 3 | A CloudWatch log line from a real draft | CloudWatch → `/aws/lambda/…DraftAndSend…` |
-| 4 | DynamoDB item with `body_hi` visible in Devanagari | DynamoDB → `meraward-complaints` → Explore items |
-| 5 | `GET /health` in a browser, showing `ward_index.loaded: true` | the live API URL |
+| 4 | A DynamoDB item with `body_hi` visible in Devanagari | DynamoDB → `meraward-complaints` → Explore items |
+| 5 | `GET /health` open in a browser tab | the live API URL |
 
-Shot 5 is worth 3 seconds on its own — it proves the geospatial index really loads in
-Lambda rather than being a local trick.
+Shot 5 deserves three seconds alone. `ward_index.loaded: true, wards: 289` is proof the
+geospatial index really loads inside Lambda, rather than being a local trick.
 
 ---
 
-# Verified facts you may state on camera
+# Verified true on 20 September 2026
 
-All checked against the live deployment on 20 September 2026.
+Checked against the live deployment, not recalled.
 
-| Claim | Status |
+| Claim | Evidence |
 |---|---|
-| 289 real ward polygons, point-in-polygon in Lambda | ✅ `/health` → `ward_index.loaded: true, wards: 289` |
-| Warm lookup ≈ 0.023 ms | ✅ measured |
-| API responds in ~2 ms and returns 202 | ✅ measured |
-| 254 backend tests, none needing AWS credentials | ✅ |
-| Lighthouse 100 / 100 / 100 / 100 on the home page | ✅ against the live site |
-| 100 accessibility on every page | ✅ |
-| Bilingual letter, Hindi + English | ✅ |
-| Councillor names from SEC Delhi official results | ✅ 155 of 288 boundaries |
-| Ward Neglect Index, 16 ranked wards | ✅ |
+| 289 ward polygons, point-in-polygon inside Lambda | `/health` → `ward_index.loaded: true, wards: 289` |
+| Warm lookup ≈ 0.023 ms | measured |
+| API returns `202` in ~2 ms | measured |
+| A complaint drafts in both languages and quotes the reporter | verified against the live API today |
+| 254 backend tests, none needing AWS credentials | `pytest backend -q` |
+| Lighthouse 100 / 100 / 100 / 100 on the home page | against the live site |
+| 100 accessibility on every page | against the live site |
+| Councillor names from official SEC Delhi results | 155 of 288 boundaries |
 
-## Do **not** say
+## Do not claim
 
-| Don't claim | Why |
+| Don't say | Why not |
 |---|---|
-| "Powered by Amazon Bedrock" | Wired, but `BEDROCK_ENABLED=false`. `/health` says `template`. |
-| "Uses Amazon Transcribe" | Voice is the **browser's** speech recognition. Transcribe is not wired. |
+| "Powered by Amazon Bedrock" | Wired, but disabled. `/health` reports `template`. |
+| "Uses Amazon Transcribe" | Not wired. Voice is browser speech recognition, and it is not working yet. |
 | "Amazon Translate" / "Rekognition" | Not used at all. |
-| "Complaints are sent to councillors" | `DELIVERY_MODE=DEMO_OUTBOX` — nothing is emailed to anyone real. |
-| "250 current wards" | Our boundaries are the **pre-2022** delimitation, 272 MCD wards. |
+| "Complaints are sent to councillors" | `DELIVERY_MODE=DEMO_OUTBOX`. Nothing is emailed to anyone real. |
+| "250 current wards" | Ours are the pre-2022 delimitation — 272 MCD wards. |
 
 ---
 
 # Production notes
 
-- **Captions on.** Judges may watch muted, and there's Hindi in the demo.
-- Record the app on **Android Chrome** — voice capture and camera behave there.
-- Music low, or none. The narration is dense.
-- Upload **unlisted**, then check it plays logged-out in an incognito window.
-- If you overrun, cut from §2:25 first — but never cut the editable review screen at
-  §0:35, which is the single most distinctive thing in the product.
+- **Captions on.** Judges may watch muted, and there is Hindi on screen.
+- Record the app on **Android Chrome**.
+- Music low, or none at all — the narration is dense.
+- Upload **unlisted**, then confirm it plays logged-out in an incognito window.
+- Running long? Cut §2:36 first. **Never cut §0:38**, the live ward lookup — it is the
+  one moment that is both unique to this project and provably working.
