@@ -10,7 +10,7 @@ Civic accountability for Delhi's municipal wards — find the ward you're standi
 report by voice, photo, or text, get a formal letter in Hindi **and** English, and see
 a public scoreboard of which wards are being ignored.
 
-[![tests](https://img.shields.io/badge/tests-254%20passing-15803d)](backend/tests)
+[![Verify civic demo](https://github.com/amritkang165/meraward/actions/workflows/verify.yml/badge.svg)](https://github.com/amritkang165/meraward/actions/workflows/verify.yml)
 [![live](https://img.shields.io/badge/live-meraward-0e6e68)](https://main.d1s6q0cvldi6dz.amplifyapp.com)
 [![lighthouse](https://img.shields.io/badge/lighthouse-100%20%2F%20100%20%2F%20100%20%2F%20100-15803d)](#performance)
 [![python](https://img.shields.io/badge/python-3.13-3776ab)](backend/)
@@ -36,6 +36,7 @@ a public scoreboard of which wards are being ignored.
 | [AI tools used](#ai-tools-used) | required disclosure |
 
 Deeper reading: [`docs/DECISIONS.md`](docs/DECISIONS.md) (why things are the way they are) ·
+[`docs/MAINTENANCE.md`](docs/MAINTENANCE.md) (current checks, dependencies and deployment boundaries) ·
 [`docs/SUBMISSION.md`](docs/SUBMISSION.md) (the writeup) ·
 [`docs/AWS_SETUP.md`](docs/AWS_SETUP.md) (deployment runbook) ·
 [`CREDITS.md`](CREDITS.md) (data provenance) ·

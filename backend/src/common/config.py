@@ -65,6 +65,12 @@ class Config:
     bedrock_profile_id: str
     bedrock_enabled: bool
     max_photo_bytes: int
+    allowed_origin: str
+    rate_limit_table: str
+    report_limit: int
+    upload_limit: int
+    status_limit: int
+    local_demo: bool
 
     @property
     def use_bedrock(self) -> bool:
@@ -102,4 +108,10 @@ def load_config() -> Config:
         bedrock_profile_id=_env("BEDROCK_INFERENCE_PROFILE_ID"),
         bedrock_enabled=_env_bool("BEDROCK_ENABLED", False),
         max_photo_bytes=_env_int("MAX_PHOTO_BYTES", 8 * 1024 * 1024),
+        allowed_origin=_env("ALLOWED_ORIGIN", "https://main.d1s6q0cvldi6dz.amplifyapp.com"),
+        rate_limit_table=_env("RATE_LIMIT_TABLE"),
+        report_limit=max(1, _env_int("REPORTS_PER_MINUTE", 10)),
+        upload_limit=max(1, _env_int("UPLOADS_PER_MINUTE", 20)),
+        status_limit=max(1, _env_int("STATUS_UPDATES_PER_MINUTE", 30)),
+        local_demo=_env_bool("LOCAL_DEMO", False),
     )

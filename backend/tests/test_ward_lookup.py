@@ -186,9 +186,10 @@ def test_decimal_from_dynamodb_encodes_cleanly():
     assert encoded == {"a": 23, "b": 1.5}
 
 
-def test_responses_carry_cors_and_content_type():
+def test_responses_carry_cors_and_content_type(monkeypatch):
+    monkeypatch.setenv("ALLOWED_ORIGIN", "https://demo.example")
     headers = ok({"x": 1})["headers"]
-    assert headers["access-control-allow-origin"] == "*"
+    assert headers["access-control-allow-origin"] == "https://demo.example"
     assert "application/json" in headers["content-type"]
 
 

@@ -104,6 +104,8 @@ def _check_token(supplied: Any, record: dict[str, Any]) -> None:
 
 def handler(event: dict[str, Any], context: Any = None) -> dict[str, Any]:
     try:
+        from common.rate_limit import enforce_write_budget
+        enforce_write_budget(event, "status")
         complaint_id = (
             (event.get("pathParameters") or {}).get("id")
             or (event.get("pathParameters") or {}).get("complaint_id")

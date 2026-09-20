@@ -28,6 +28,7 @@ from common.config import load_config
 from common.ids import complaint_id as new_complaint_id
 from common.ids import status_token as new_status_token
 from common.responses import ApiError, accepted, server_error
+from common.rate_limit import enforce_write_budget
 from common.store import put_complaint, update_complaint_draft
 from common.validation import (
     require_coords,
@@ -85,6 +86,7 @@ def _enqueue(complaint_id: str) -> bool:
 
 def handler(event: dict[str, Any], context: Any = None) -> dict[str, Any]:
     try:
+        enforce_write_budget(event, "report")
         body = _parse_body(event)
 
         # Photo and description are each optional so that a spoken, written or
@@ -122,9 +124,9 @@ def handler(event: dict[str, Any], context: Any = None) -> dict[str, Any]:
             "issue_type": issue_type,
             "lat": Decimal(str(lat)),
             "lng": Decimal(str(lng)),
-            # Real citizen reports are never demo rows. The seed script sets this
-            # true; nothing else ever does.
-            "is_demo": False,
+            # Reports in the isolated local sandbox are explicitly synthetic.
+            # The AWS deployment keeps LOCAL_DEMO unset.
+            "is_demo": cfg.local_demo,
             "delivery_mode": cfg.delivery_mode,
             "status_token": status_token,
         }
